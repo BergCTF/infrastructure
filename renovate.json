@@ -19,7 +19,9 @@
     "commitMessageSuffix": ""
   },
   "osvVulnerabilityAlerts": true,
-  "dependencyDashboardOSVVulnerabilitySummary": "all",
+  "dependencyDashboard": {
+    "osvVulnerabilitySummary": "all"
+  },
   "timezone": "Europe/Zurich"
 }
 
