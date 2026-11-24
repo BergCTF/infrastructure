@@ -1,4 +1,26 @@
 resource "helm_release" "infra_argocd" {
+  # The seed Application can sync as soon as Argo CD starts.
+  depends_on = [
+    kubernetes_secret_v1.argocd_infra_repo,
+    kubernetes_secret_v1.argocd_challenge_repo,
+    kubernetes_secret_v1.cloudflare_api_token,
+    kubernetes_secret_v1.ed_dns_api_token,
+    kubernetes_secret_v1.authentik_secret_key,
+    kubernetes_secret_v1.authentik_database_backup_secret,
+    kubernetes_secret_v1.authentik_bootstrap_token,
+    kubernetes_secret_v1.argocd_authentik_secret,
+    kubernetes_secret_v1.grafana_oauth_secret,
+    kubernetes_secret_v1.berg_client_secret,
+    kubernetes_secret_v1.berg_database_backup_secret,
+    kubernetes_secret_v1.berg_pull_secret,
+    kubernetes_secret_v1.berg_discord_client,
+    kubernetes_secret_v1.berg_discord_bot_token,
+    kubernetes_secret_v1.loki_objectstorage_credentials,
+    kubernetes_secret_v1.mimir_objectstorage_credentials,
+    kubernetes_secret_v1.tracing_objectstorage_credentials,
+    kubernetes_secret_v1.discord_alert_webhook,
+  ]
+
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
@@ -11,7 +33,22 @@ resource "helm_release" "infra_argocd" {
     yamlencode({
       global = var.argocd_domain == null ? {} : { domain = var.argocd_domain }
       configs = {
-        cm     = var.argocd_domain == null ? {} : { url = "https://${var.argocd_domain}" }
+        cm = merge(
+          var.argocd_domain == null ? {} : { url = "https://${var.argocd_domain}" },
+          var.authentik.enabled && var.authentik.domain != null ? {
+            "oidc.config" = yamlencode({
+              name            = "Authentik"
+              issuer          = "https://${var.authentik.domain}/application/o/argocd/"
+              clientID        = "argocd"
+              clientSecret    = "$argocd-authentik-secret:oidc.authentik.clientSecret"
+              requestedScopes = ["openid", "profile", "email", "groups"]
+            })
+          } : {},
+        )
+        rbac = var.authentik.enabled && var.authentik.domain != null ? {
+          "policy.csv" = "g, berg-admins, role:admin"
+          scopes       = "[groups]"
+        } : {}
         params = { "server.insecure" = true }
       }
     }),

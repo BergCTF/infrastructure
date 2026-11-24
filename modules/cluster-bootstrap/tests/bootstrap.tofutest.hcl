@@ -1,5 +1,6 @@
 mock_provider "kubernetes" {}
 mock_provider "helm" {}
+mock_provider "random" {}
 
 variables {
   infra_repo                = "ssh://git@forgejo.example.org/ctf/infrastructure.git"
@@ -45,4 +46,44 @@ run "public_gitops_seed" {
     condition     = !contains(keys(kubernetes_secret_v1.argocd_infra_repo.data), "sshPrivateKey")
     error_message = "A public repository must work without an SSH key."
   }
+}
+
+run "seed_credentials" {
+  command = plan
+
+  variables {
+    dns_api_token = "test-dns-token"
+    cert_manager  = { enabled = true, dns_resolver = { enabled = true } }
+    external_dns  = { enabled = true }
+    authentik     = { enabled = true, domain = "idp.example.org" }
+  }
+
+  assert {
+    condition = (
+      kubernetes_secret_v1.cloudflare_api_token.metadata[0].namespace == "infra-cert-manager" &&
+      kubernetes_secret_v1.ed_dns_api_token.metadata[0].namespace == "infra-external-dns" &&
+      kubernetes_secret_v1.cloudflare_api_token.data["api-token"] == var.dns_api_token &&
+      kubernetes_secret_v1.ed_dns_api_token.data["api-token"] == var.dns_api_token
+    )
+    error_message = "Bootstrap must write the DNS token to both namespaces."
+  }
+
+  assert {
+    condition = (
+      kubernetes_secret_v1.authentik_bootstrap_token.data.token == output.authentik_bootstrap_token &&
+      kubernetes_secret_v1.argocd_authentik_secret.data["oidc.authentik.clientSecret"] == output.argocd_client_secret &&
+      yamldecode(yamldecode(helm_release.infra_argocd.values[0]).configs.cm["oidc.config"]).issuer == "https://idp.example.org/application/o/argocd/"
+    )
+    error_message = "Bootstrap must seed the Authentik token and connect the Argo CD OIDC client."
+  }
+}
+
+run "dns_token_required" {
+  command = plan
+
+  variables {
+    cert_manager = { enabled = true, dns_resolver = { enabled = true } }
+  }
+
+  expect_failures = [var.dns_api_token]
 }

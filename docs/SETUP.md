@@ -104,11 +104,21 @@ With cert-manager enabled, the chart requests the `berg-gateway-tls`
 certificate through its configured ClusterIssuer. If you disable cert-manager,
 provide a TLS Secret named `berg-gateway-tls` in the `berg` namespace.
 
-## Add-ons and secrets
+## Seed credentials and add-ons
 
-Deploy add-ons from the rendered cluster chart. Keep feature configuration in
-Helm values and provide credentials from your secret manager. For a smaller
-deployment, use these optional chart settings:
+OpenTofu writes the enabled seed credentials before Argo CD starts. Pass
+`dns_api_token` into the root module for the default cert-manager DNS solver
+and External DNS. Set the token through your deployment secret store. The
+bootstrap module writes it to both namespaces, and cert-manager issues the
+gateway certificate after DNS validation. Protect access to the OpenTofu state,
+which contains the seeded credentials.
+
+Keep workload configuration in the chart. Set `berg.enabled`,
+`authentik.enabled`, and `monitoring.enabled` as module inputs when you use
+those features, and pass their credentials through the corresponding inputs.
+For a deployment that supplies its own TLS Secret or DNS records, disable the
+matching bootstrap inputs (`cert_manager`, `external_dns`) and chart features.
+For example, the chart can omit these optional workloads:
 
 ```yaml
 berg:
@@ -121,9 +131,9 @@ dns:
   externalDnsEnabled: false
 ```
 
-The chart keeps its previous enablement defaults. Supply the Secret names and
-keys below for the features you use. Create them in the listed namespaces
-through your existing Kubernetes secret delivery workflow.
+The bootstrap module creates these Secrets when their corresponding options
+are enabled. It generates the Authentik bootstrap token and OAuth client
+secrets, and takes the DNS, registry, backup, and Discord credentials as inputs.
 
 | Feature | Namespace | Secret | Keys |
 | --- | --- | --- | --- |
@@ -135,14 +145,16 @@ through your existing Kubernetes secret delivery workflow.
 | Authentik database backups | `infra-authentik` | `database-authentik-cluster-backup-s3-creds` | `ACCESS_KEY_ID`, `ACCESS_SECRET_KEY` |
 | DNS certificate solver | `infra-cert-manager` | `dns-api-key` | `api-token` |
 | External DNS | `infra-external-dns` | `dns-api-key` | `api-token` |
+| Argo CD OIDC | `infra-argocd` | `argocd-authentik-secret` | `oidc.authentik.clientSecret` |
 | Grafana OIDC | `infra-monitoring` | `auth-generic-oauth-secret` | `client_id`, `client_secret` |
 | Discord alerting | `infra-monitoring` | `discord-webhook` | `webhook` |
 | Loki and Mimir storage | `infra-logging`, `infra-monitoring` | `loki-objectstorage-credentials`, `mimir-objectstorage-credentials` | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` |
 | Tempo storage | `infra-tracing` | `tracing-objectstorage-credentials` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
 
-Create Authentik clients through a blueprint or the [standalone Authentik
-module](../modules/authentik/README.md) once the service is reachable. Match
-the client secrets in Authentik to the secrets used by the applications.
+When Authentik is enabled, the root module uses those generated credentials
+to configure the OIDC clients once the service is reachable. Argo CD uses the
+seeded OIDC client secret, and optional `argocd_helm_values` can override SSO
+settings.
 Configure Kubernetes API OIDC only if needed:
 
 ```hcl
@@ -155,32 +167,3 @@ kube_api_oidc_providers = [{
   groups_prefix  = "oidc:"
 }]
 ```
-
-Argo CD itself is managed by the bootstrap Helm release. Set
-`argocd_helm_values.configs.cm` for OIDC, and
-`argocd_helm_values.configs.rbac` for claims-based authorization. For example:
-
-```hcl
-argocd_helm_values = {
-  configs = {
-    cm = {
-      "oidc.config" = yamlencode({
-        name            = "Authentik"
-        issuer          = "https://idp.prod.example.org/application/o/argocd/"
-        clientID        = "argocd"
-        clientSecret    = "$argocd-authentik-secret:oidc.authentik.clientSecret"
-        requestedScopes = ["openid", "profile", "email", "groups"]
-      })
-    }
-    rbac = {
-      "policy.csv" = "g, berg-admins, role:admin"
-      "scopes"     = "[groups]"
-    }
-  }
-}
-```
-
-For this example, populate the `argocd-authentik-secret` Secret in
-`infra-argocd` with the key `oidc.authentik.clientSecret` and label it
-`app.kubernetes.io/part-of: argocd`. Verify group-based sign-in before
-disabling the local Argo CD administrator.

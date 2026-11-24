@@ -2,8 +2,8 @@
 
 Configures Authentik login, branding, groups, and OIDC clients. The caller
 configures and passes the `goauthentik/authentik` provider with the service URL
-and API token. Run this module after Authentik is reachable. Supply the same
-OIDC client credentials to the clients that use them.
+and API token. Run this module after Authentik is reachable. The platform root module can
+wire this automatically using the credentials generated during bootstrap.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
