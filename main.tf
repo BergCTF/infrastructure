@@ -13,17 +13,6 @@ terraform {
   }
 }
 
-# Repository automation and identity configuration now have their own stacks.
-removed {
-  from = module.github
-  lifecycle { destroy = false }
-}
-
-removed {
-  from = module.authentik
-  lifecycle { destroy = false }
-}
-
 module "cluster" {
   source = "./modules/cluster"
 

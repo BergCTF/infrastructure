@@ -21,20 +21,6 @@ and pass that object as the core module's `git_credentials` input. Omit
 `repositories.challenges` if you only need a key and webhook for the
 infrastructure repository.
 
-## Transfer an existing GitHub module
-
-Use the previous deploy key title, which was
-`<governance_name>-<env>-argocd-credential`. Back up the current state using
-your backend's encrypted state backup procedure. Transfer the old
-`module.<infrastructure-call>.module.github` state to `module.github` in
-this example's state before applying either stack. Move the entire module so
-the private keys and webhook secret are preserved alongside the GitHub
-objects. Plan the destination first and check that it does not recreate keys
-or webhooks. Securely supply the resulting `git_credentials` to the core
-stack and review both plans before applying. When treating both calls as part
-of one state, use a caller-level `moved` block with those same module
-addresses instead of transferring state between backends.
-
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 

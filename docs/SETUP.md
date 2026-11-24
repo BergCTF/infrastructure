@@ -92,8 +92,6 @@ dedicated machines whose disks can be reprovisioned. You can omit
 The Talos module selects tunnel routing automatically for dedicated workers.
 It supplies Cilium, Hubble Relay, and the Hubble UI. Set
 `cluster.cilium_helm_values` for overrides such as Cilium Prometheus settings.
-When adding the first dedicated worker to an existing cluster, coordinate the
-routing change and check cross-node pod connectivity.
 [Upstream bare-metal guide](https://github.com/hcloud-k8s/terraform-hcloud-kubernetes/tree/6.4.0#bare-metal-server)
 
 ## Add-ons and secrets
