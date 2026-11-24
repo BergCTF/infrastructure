@@ -1,4 +1,3 @@
-{{- if eq .Values.gateway.type "kgateway" }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -8,9 +7,6 @@ metadata:
 spec:
   gatewayClassName: kgateway
   infrastructure:
-    annotations:
-      load-balancer.hetzner.cloud/uses-proxyprotocol: "true"
-      load-balancer.hetzner.cloud/name: "traefik.{{ .Values.domains.cluster }}"
     parametersRef:
       name: berg
       group: gateway.kgateway.dev
@@ -71,9 +67,10 @@ metadata:
   name: berg
   namespace: berg
 spec:
-  kube: 
+  kube:
     service:
-      extraAnnotations: 
+      type: LoadBalancer
+      extraAnnotations:
         load-balancer.hetzner.cloud/uses-proxyprotocol: "true"
         load-balancer.hetzner.cloud/name: "berg.{{ .Values.domains.cluster }}"
     envoyContainer:
@@ -89,22 +86,11 @@ metadata:
 spec:
   default:
     proxyProtocol: {}
+    httpSettings:
+      upgradeConfig:
+        enabledUpgrades:
+          - websocket
   targetRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
       name: gw-berg
----
-apiVersion: gateway.kgateway.dev/v1alpha1
-kind: HTTPListenerPolicy
-metadata:
-  name: berg
-  namespace: berg
-spec:
-  targetRefs:
-  - group: gateway.networking.k8s.io
-    kind: Gateway
-    name: gw-berg
-  upgradeConfig:
-    enabledUpgrades:
-      - websocket
-{{- end }}

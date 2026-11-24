@@ -93,6 +93,17 @@ It supplies Cilium, Hubble Relay, and the Hubble UI. Set
 `cluster.cilium_helm_values` for overrides such as Cilium Prometheus settings.
 [Upstream bare-metal guide](https://github.com/hcloud-k8s/terraform-hcloud-kubernetes/tree/6.4.0#bare-metal-server)
 
+## Gateway
+
+The cluster chart deploys kgateway and a shared Gateway named `gw-berg` in the
+`berg` namespace. Point the platform and challenge DNS names at its Hetzner
+load balancer. The Gateway serves HTTP on 80, HTTPS on 443, and challenge
+traffic on 1337 (HTTPS) and 31337 (TLS termination).
+
+With cert-manager enabled, the chart requests the `berg-gateway-tls`
+certificate through its configured ClusterIssuer. If you disable cert-manager,
+provide a TLS Secret named `berg-gateway-tls` in the `berg` namespace.
+
 ## Add-ons and secrets
 
 Deploy add-ons from the rendered cluster chart. Keep feature configuration in

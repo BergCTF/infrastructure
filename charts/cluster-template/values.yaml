@@ -10,10 +10,6 @@ infra:
   # repo: git@github.com:example/infrastructure.git
   # path: manifests/<environment>
 
-gateway:
-  # should be kgateway once https://github.com/kgateway-dev/kgateway/issues/13397 is resolved
-  type: traefik
-
 ctf:
   name: My CTF
   description: |
@@ -58,15 +54,6 @@ berg:
 challengeInstanceController:
   enabled: true
   clusterWide: true
-
-# configuration for gateways to deploy
-# note: each gateway will provision a LoadBalancer IP
-gateways:
-  # gateway for berg
-  berg:
-    # this should always be enabled for now
-    # disabling this will likely break bindings
-    enabled: true
 
 authentik:
   enabled: true

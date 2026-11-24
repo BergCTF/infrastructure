@@ -115,6 +115,10 @@ spec:
                   targetRevision: HEAD
                 syncPolicy:
                   automated: {}
+                  syncOptions:
+                    - SkipDryRunOnMissingResource=true
+                  retry:
+                    limit: 8
               {{- if .Values.observability.enabled }}
               vector:
                 namespace: infra-argocd

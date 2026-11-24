@@ -5,21 +5,12 @@ metadata:
   namespace: infra-argocd
 spec:
   parentRefs:
-    {{- if eq .Values.gateway.type "kgateway" }}
     - name: gw-berg
       namespace: berg
       sectionName: https
     - name: gw-berg
       namespace: berg
       sectionName: http
-    {{- else }}
-    - name: traefik
-      namespace: infra-traefik
-      sectionName: web
-    - name: traefik
-      namespace: infra-traefik
-      sectionName: websecure
-    {{- end }}
   hostnames:
     - argocd.{{ .Values.domains.cluster }}
   rules:

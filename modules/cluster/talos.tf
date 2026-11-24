@@ -24,8 +24,6 @@ module "talos" {
     "https://raw.githubusercontent.com/argoproj/argo-cd/v3.6.2/manifests/crds/application-crd.yaml",
     "https://raw.githubusercontent.com/argoproj/argo-cd/v3.6.2/manifests/crds/appproject-crd.yaml",
     "https://raw.githubusercontent.com/argoproj/argo-cd/v3.6.2/manifests/crds/applicationset-crd.yaml",
-    # Add CRDs for Gateway API
-    "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/experimental-install.yaml",
   ]
 
   # Allow access from anywhere.
@@ -51,6 +49,9 @@ module "talos" {
       port        = "30000-32767"
     }
   ]
+
+  gateway_api_crds_version         = "v1.7.0"
+  gateway_api_crds_release_channel = "experimental"
 
   cilium_hubble_enabled       = true
   cilium_hubble_relay_enabled = true

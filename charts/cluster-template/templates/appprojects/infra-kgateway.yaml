@@ -11,6 +11,8 @@ metadata:
 spec:
   description: Kgateway controller
   clusterResourceWhitelist:
+    - group: gateway.networking.k8s.io
+      kind: GatewayClass
     - group: rbac.authorization.k8s.io
       kind: ClusterRoleBinding
     - group: rbac.authorization.k8s.io
