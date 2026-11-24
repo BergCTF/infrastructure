@@ -17,13 +17,7 @@ module "talos" {
   kube_api_load_balancer_enabled                = var.kube_api_loadbalancer_enabled
   kube_api_load_balancer_public_network_enabled = true
   cluster_allow_scheduling_on_control_planes    = var.cluster_allow_scheduling_on_control_planes
-  kube_api_oidc_providers = [{
-    issuer_url     = "https://idp.${var.cluster_domain}/application/o/kubernetes-api/"
-    audiences      = ["kubernetes-api"]
-    username_claim = "email"
-    groups_claim   = "groups"
-    groups_prefix  = "oidc:"
-  }]
+  kube_api_oidc_providers                       = var.kube_api_oidc_providers
 
   talos_extra_remote_manifests = [
     # Add CRDs for ArgoCD
@@ -58,12 +52,13 @@ module "talos" {
     }
   ]
 
-  # we use kgateway
-  cilium_helm_values = {
-    ingressController = {
-      enabled = false
-    }
-  }
+  cilium_hubble_enabled       = true
+  cilium_hubble_relay_enabled = true
+  cilium_hubble_ui_enabled    = true
+  cilium_helm_values = merge({
+    bandwidthManager = { enabled = true }
+    tls              = { secretsNamespace = { name = "infra-cilium-secrets" } }
+  }, var.cilium_helm_values)
 
   control_plane_nodepools = var.control_plane_pools
   worker_nodepools        = var.worker_pools

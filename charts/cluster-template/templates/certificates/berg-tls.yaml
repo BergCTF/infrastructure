@@ -1,3 +1,4 @@
+{{- if and .Values.berg.enabled .Values.certManager.enabled }}
 ---
 # we create a regular certificate instead of using the gateway API annotation
 # to gain more control over the certificate SANs and avoid multiple cert requests
@@ -19,3 +20,4 @@ spec:
     - {{ .Values.domains.cluster }}
     - "*.{{ .Values.domains.cluster }}"
     - "*.challs.{{ .Values.domains.cluster }}"
+{{- end }}

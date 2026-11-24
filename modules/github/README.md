@@ -2,7 +2,7 @@
 
 This module provisions deploy keys to the target github repos. Currently, only adopting existing repos is intended.
 
-See [GitHub-free setup](../../docs/SETUP.md#forgejo-without-github-automation) to bring your own Argo CD credentials.
+See the [standalone GitHub example](../../examples/github/README.md) to provision credentials for the platform stack.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

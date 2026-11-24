@@ -83,3 +83,15 @@ variable "hcloud_robot_password" {
   default     = null
   sensitive   = true
 }
+
+variable "kube_api_oidc_providers" {
+  type        = any
+  description = "Optional Kubernetes API OIDC issuers using the upstream hcloud-k8s schema."
+  default     = []
+}
+
+variable "cilium_helm_values" {
+  type        = any
+  description = "Optional Helm overrides for the Cilium installation managed by Talos."
+  default     = {}
+}

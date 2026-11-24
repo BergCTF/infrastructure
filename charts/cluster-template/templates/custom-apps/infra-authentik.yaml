@@ -1,3 +1,4 @@
+{{- if .Values.authentik.enabled }}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -147,3 +148,4 @@ spec:
             enabled: false
     - repoURL: {{ .Values.infra.repo }}
       path: {{ .Values.infra.path}}/authentik-extra
+{{- end }}

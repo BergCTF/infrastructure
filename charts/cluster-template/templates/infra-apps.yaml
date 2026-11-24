@@ -22,211 +22,10 @@ spec:
     helm:
       valuesObject:
         fullnameOverride: app
-        argocd:
-          enabled: true
-          project: infra-argocd
-          destination:
-            server: https://kubernetes.default.svc
-            namespace: infra-argocd
-          syncPolicy:
-            automated: {}
-            syncOptions:
-              - ServerSideApply=true
-          values:
-            global:
-              domain: argocd.{{ .Values.domains.cluster }}
-            createAggregateRoles: true
-            createAggregateClusterRoles: true
-            applicationSet:
-              # don't need this
-              replicas: 0
-            notifications:
-              # don't need this either
-              enabled: false
-            configs:
-              params:
-                application.namespaces: "infra-argocd"
-                server.insecure: true
-              cm:
-                url: "https://argocd.{{ .Values.domains.cluster }}"
-                admin.enabled: false
-                users.anonymous.enabled: false
-                statusbadge.enabled: false
-                exec.enabled: false
-                webhook.github.secret: "$argocd-webhook-secret:secret"
-                resource.exclusions: |
-                  - apiGroups:
-                      - velero.io
-                    kinds:
-                      - Backup
-                    clusters:
-                      - "*"
-                oidc.config: |
-                  name: Authentik
-                  issuer: https://idp.{{ .Values.domains.cluster }}/application/o/argocd/
-                  clientID: argocd
-                  clientSecret: $argocd-authentik-secret:oidc.authentik.clientSecret
-                  requestedScopes:
-                    - openid
-                    - profile
-                    - email
-                    - groups
-              rbac:
-                policy.csv: |
-                  # default deny all role
-                  p, role:deny, *, *, *, deny
-                  g, berg-admins, role:admin
-                policy.default: role:deny
-                scopes: "[email,groups]"
-            controller:
-              resources:
-                requests:
-                  cpu: 250m
-                  memory: 256Mi
-                limits:
-                  cpu: 1
-                  memory: 2Gi
-              {{- if .Values.observability.enabled }}
-              metrics:
-                enabled: true
-                serviceMonitor:
-                  enabled: true
-                  selector:
-                    k8s.adfinis.com/prometheus: kube-prometheus
-                rules:
-                  enabled: true
-                  selector:
-                    k8s.adfinis.com/prometheus: kube-prometheus
-                  spec:
-                    - alert: ArgoAppMissing
-                      expr: |
-                        absent(argocd_app_info)
-                      for: 15m
-                      labels:
-                        severity: critical
-                        group: ccs
-                      annotations:
-                        summary: "[ArgoCD] No reported applications"
-                        description: >
-                          ArgoCD has not reported any applications data for the past 15 minutes which means that it must be down or not functioning properly.  This needs to be resolved for this cloud to continue to maintain state.
-
-                    - alert: ArgoAppNotSynced
-                      expr: |
-                        argocd_app_info{sync_status!="Synced"} == 1
-                      for: 2h
-                      labels:
-                        severity: warning
-                      annotations:
-                        summary: "[{{"{{"}}$labels.name{{"}}"}}] Application not synchronized"
-                        description: >
-                          The application "{{"{{"}}$labels.name{{"}}"}}" has not been synchronized for over 2 hours which means that the state of this cloud has drifted away from the state inside Git.
-
-                    - alert: ArgoAppUnhealthy
-                      expr: |
-                        argocd_app_info{health_status!="Healthy"} == 1
-                      for: 15m
-                      labels:
-                        severity: critical
-                      annotations:
-                        summary: "[{{"{{"}}$labels.name{{"}}"}}] Application unhealthy"
-                        description: >
-                          The application "{{"{{"}}$labels.name{{"}}"}}" has been unhealthy for over 15 minutes.
-              {{- end }}
-            repoServer:
-              clusterRoleRules:
-                enabled: true
-              resources:
-                requests:
-                  cpu: 10m
-                  memory: 256Mi
-                limits:
-                  cpu: 400m
-                  memory: 1Gi
-              {{- if .Values.observability.enabled }}
-              metrics:
-                enabled: true
-                serviceMonitor:
-                  enabled: true
-                  selector:
-                    k8s.adfinis.com/prometheus: kube-prometheus
-              {{- end }}
-            applicationSet:
-              enabled: false
-            notifications:
-              enabled: false
-            dex:
-              enabled: false
-            server:
-              resources:
-                requests:
-                  cpu: 50m
-                  memory: 64Mi
-                limits:
-                  cpu: 500m
-                  memory: 1Gi
-              staticAssets:
-                enabled: true
-              certificate:
-                enabled: false
-              httproute:
-                enabled: true
-                parentRefs:
-                  {{- if eq .Values.gateway.type "kgateway" }}
-                  - group: gateway.networking.k8s.io
-                    kind: Gateway
-                    name: gw-berg
-                    namespace: berg
-                    sectionName: https
-                  - group: gateway.networking.k8s.io
-                    kind: Gateway
-                    name: gw-berg
-                    namespace: berg
-                    sectionName: http
-                  {{- else }}
-                  - group: gateway.networking.k8s.io
-                    kind: Gateway
-                    name: traefik
-                    namespace: infra-traefik
-                    sectionName: web
-                  - group: gateway.networking.k8s.io
-                    kind: Gateway
-                    name: traefik
-                    namespace: infra-traefik
-                    sectionName: websecure
-                  {{- end }}
-                hostnames:
-                  - argocd.{{ .Values.domains.cluster }}
-              {{- if .Values.observability.enabled }}
-              metrics:
-                enabled: true
-                serviceMonitor:
-                  enabled: true
-                  selector:
-                    k8s.adfinis.com/prometheus: kube-prometheus
-              {{- end }}
-            redis:
-              exporter:
-                enabled: true
-                repository: ghcr.io/oliver006/redis_exporter
-              resources:
-                requests:
-                  cpu: 50m
-                  memory: 64Mi
-                limits:
-                  cpu: 200m
-                  memory: 128Mi
-              {{- if .Values.observability.enabled }}
-              metrics:
-                enabled: true
-                serviceMonitor:
-                  enabled: true
-                  selector:
-                    k8s.adfinis.com/prometheus: kube-prometheus
-              {{- end }}
         rbacManager:
           enabled: false
         certManager:
-          enabled: true
+          enabled: {{ .Values.certManager.enabled }}
           project: infra-cert-manager
           destination:
             server: https://kubernetes.default.svc
@@ -250,7 +49,7 @@ spec:
                   k8s.adfinis.com/prometheus: kube-prometheus
             {{- end }}
         certManagerIssuers:
-          enabled: true
+          enabled: {{ .Values.certManager.enabled }}
           project: infra-cert-manager
           destination:
             server: https://kubernetes.default.svc
@@ -261,7 +60,7 @@ spec:
             clusterIssuers:
               {{ .Values.certManager.clusterIssuers | toYaml | nindent 14 }}
         certManagerMonitoring:
-          enabled: {{ .Values.observability.enabled }}
+          enabled: {{ and .Values.certManager.enabled .Values.observability.enabled }}
           project: infra-cert-manager
           destination:
             server: https://kubernetes.default.svc

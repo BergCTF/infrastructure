@@ -3,7 +3,12 @@
 The [deployment guide](DEPLOYING.md) covers cluster provisioning and GitOps
 bootstrap. The snippets below extend the inputs to the [root module](../README.md).
 
-## Forgejo without GitHub automation
+## Git access
+
+Git authentication is supplied to the cluster as credentials. For GitHub-managed
+deploy keys and a push webhook, use the [standalone GitHub example](../examples/github/README.md).
+
+### Forgejo over SSH
 
 For private repositories, generate a dedicated SSH keypair per repository and
 register the public keys as read-only deploy keys in Forgejo. Pass the private
@@ -27,7 +32,6 @@ variable "forgejo_deploy_keys" {
 In your existing infrastructure module call, merge in these settings:
 
 ```hcl
-github_enabled      = false
 git_credentials     = var.forgejo_deploy_keys
 git_ssh_known_hosts = file("${path.module}/forgejo_known_hosts")
 
@@ -39,10 +43,7 @@ cluster = {
   }
 }
 
-berg = {
-  # Keep the other Berg settings.
-  challenge_repo = "ssh://git@forgejo.example.org/ctf/challenges.git"
-}
+challenge_repo = "ssh://git@forgejo.example.org/ctf/challenges.git"
 ```
 
 Use the same URLs and manifest path in the values you render with
@@ -57,18 +58,9 @@ challenges:
   repo: ssh://git@forgejo.example.org/ctf/challenges.git
 ```
 
-For GitHub repositories, the default is still to provision read-only deploy keys
-and push webhooks through the GitHub module. With GitHub automation disabled,
-Argo CD polls Forgejo for changes. This path needs no GitHub App, GitHub token,
-or Forgejo webhook. OpenTofu may still install the GitHub provider plugin
-during initialization because the root module declares it. If Berg is disabled,
-omit the challenge deploy key and leave `challenges.enabled` off. For public
-HTTPS repositories, omit their SSH keys and use their HTTPS clone URLs.
-
-If moving an existing deployment off GitHub, register the replacement keys and
-review the plan before applying. Disabling the GitHub module removes its
-managed deploy keys and webhooks. Keep the old provider credentials available
-for that cleanup.
+Argo CD polls Forgejo. For public HTTPS repositories, omit their SSH keys and
+use HTTPS clone URLs. Omit the challenge URL and key from OpenTofu when the
+challenge repository requires no Argo CD repository registration.
 
 ## Hetzner bare-metal workers
 
@@ -97,16 +89,90 @@ and handles rescue mode and Talos installation on the specified servers. Use
 dedicated machines whose disks can be reprovisioned. You can omit
 `cluster.worker_pools` when all workers are dedicated.
 
-If Argo CD manages Cilium through this repository's cluster chart, also render
-with:
+The Talos module selects tunnel routing automatically for dedicated workers.
+It supplies Cilium, Hubble Relay, and the Hubble UI. Set
+`cluster.cilium_helm_values` for overrides such as Cilium Prometheus settings.
+When adding the first dedicated worker to an existing cluster, coordinate the
+routing change and check cross-node pod connectivity.
+[Upstream bare-metal guide](https://github.com/hcloud-k8s/terraform-hcloud-kubernetes/tree/6.4.0#bare-metal-server)
+
+## Add-ons and secrets
+
+Deploy add-ons from the rendered cluster chart. Keep feature configuration in
+Helm values and provide credentials from your secret manager. For a smaller
+deployment, use these optional chart settings:
 
 ```yaml
-cilium:
-  bareMetal: true
+berg:
+  enabled: false
+authentik:
+  enabled: false
+certManager:
+  enabled: false
+dns:
+  externalDnsEnabled: false
 ```
 
-This keeps the rendered Cilium routing mode aligned with the upstream Talos
-bootstrap. When adding the first dedicated worker to an existing cluster,
-coordinate the routing change and check pod connectivity across the two node
-types. See the upstream notes on Cilium restarts and Robot firewalls.
-[Upstream bare-metal guide](https://github.com/hcloud-k8s/terraform-hcloud-kubernetes/tree/6.4.0#bare-metal-server)
+The chart keeps its previous enablement defaults. Supply the Secret names and
+keys below for the features you use. Create them in the listed namespaces
+through your existing Kubernetes secret delivery workflow.
+
+| Feature | Namespace | Secret | Keys |
+| --- | --- | --- | --- |
+| Berg image pulls | `berg` | `berg-pull-secret` | `.dockerconfigjson` with type `kubernetes.io/dockerconfigjson` |
+| Berg OIDC | `berg` | `berg-client-secret` | `clientSecret` |
+| Berg Discord | `berg` | `berg-discord-client`, `berg-discord-bot-token` | `clientId`, `clientSecret`; `token` |
+| Berg database backups | `berg` | `database-berg-cluster-backup-s3-creds` | `ACCESS_KEY_ID`, `ACCESS_SECRET_KEY` |
+| Authentik | `infra-authentik` | `authentik-extra-secret`, `authentik-bootstrap-token` | `secret_key`, optional `email_username`, `email_password`; `token` |
+| Authentik database backups | `infra-authentik` | `database-authentik-cluster-backup-s3-creds` | `ACCESS_KEY_ID`, `ACCESS_SECRET_KEY` |
+| DNS certificate solver | `infra-cert-manager` | `dns-api-key` | `api-token` |
+| External DNS | `infra-external-dns` | `dns-api-key` | `api-token` |
+| Grafana OIDC | `infra-monitoring` | `auth-generic-oauth-secret` | `client_id`, `client_secret` |
+| Discord alerting | `infra-monitoring` | `discord-webhook` | `webhook` |
+| Loki and Mimir storage | `infra-logging`, `infra-monitoring` | `loki-objectstorage-credentials`, `mimir-objectstorage-credentials` | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` |
+| Tempo storage | `infra-tracing` | `tracing-objectstorage-credentials` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
+
+Create Authentik clients through a blueprint or the [standalone Authentik
+module](../modules/authentik/README.md) once the service is reachable. Match
+the client secrets in Authentik to the secrets used by the applications.
+Configure Kubernetes API OIDC only if needed:
+
+```hcl
+# In the cluster object
+kube_api_oidc_providers = [{
+  issuer_url     = "https://idp.prod.example.org/application/o/kubernetes-api/"
+  audiences      = ["kubernetes-api"]
+  username_claim = "email"
+  groups_claim   = "groups"
+  groups_prefix  = "oidc:"
+}]
+```
+
+Argo CD itself is managed by the bootstrap Helm release. Set
+`argocd_helm_values.configs.cm` for OIDC, and
+`argocd_helm_values.configs.rbac` for claims-based authorization. For example:
+
+```hcl
+argocd_helm_values = {
+  configs = {
+    cm = {
+      "oidc.config" = yamlencode({
+        name            = "Authentik"
+        issuer          = "https://idp.prod.example.org/application/o/argocd/"
+        clientID        = "argocd"
+        clientSecret    = "$argocd-authentik-secret:oidc.authentik.clientSecret"
+        requestedScopes = ["openid", "profile", "email", "groups"]
+      })
+    }
+    rbac = {
+      "policy.csv" = "g, berg-admins, role:admin"
+      "scopes"     = "[groups]"
+    }
+  }
+}
+```
+
+For this example, populate the `argocd-authentik-secret` Secret in
+`infra-argocd` with the key `oidc.authentik.clientSecret` and label it
+`app.kubernetes.io/part-of: argocd`. Verify group-based sign-in before
+disabling the local Argo CD administrator.

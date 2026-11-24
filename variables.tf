@@ -41,6 +41,9 @@ variable "cluster" {
     bare_metal_config_patches = optional(list(string), [])
     hcloud_vswitch_id         = optional(number)
 
+    kube_api_oidc_providers = optional(any, [])
+    cilium_helm_values      = optional(any, {})
+
     infra_repo = object({
       url  = string
       path = string
@@ -48,154 +51,22 @@ variable "cluster" {
   })
 }
 
-variable "berg" {
-  type = object({
-    enabled           = bool
-    domain            = optional(string)
-    challenge_repo    = optional(string)
-    pull_secret       = optional(string)
-    admin_access_only = optional(bool, true)
-    redirect_uris     = optional(list(string), [])
-    backups = object({
-      enabled    = optional(bool, false)
-      access_key = optional(string)
-      secret_key = optional(string)
-    })
-    discord_bot_token = optional(string, null)
-  })
-
-  validation {
-    condition     = !var.berg.enabled || try(trimspace(var.berg.challenge_repo) != "", false)
-    error_message = "Set berg.challenge_repo when Berg is enabled."
-  }
-}
-
-variable "harbor" {
-  type = object({
-    enabled    = optional(bool, false)
-    domain     = optional(string)
-    access_key = optional(string)
-    secret_key = optional(string)
-  })
-}
-
-variable "authentik" {
-  type = object({
-    enabled = bool
-    domain  = optional(string)
-    branding = object({
-      title               = string
-      favicon             = string
-      logo                = string
-      background_image    = string
-      default_application = string
-    })
-    backups = object({
-      enabled    = optional(bool, false)
-      access_key = optional(string)
-      secret_key = optional(string)
-    })
-    authentication = optional(object({
-      # enable discord federated authentication
-      discord = optional(object({
-        # discord is currently required
-        enabled = optional(bool, true)
-        # required for role mappings
-        guild_id      = optional(string)
-        client_id     = optional(string)
-        client_secret = optional(string)
-        # arbitrary group -> discord role id mappings
-        role_mappings = optional(map(string), {})
-      }), {})
-      # enable password authentication
-      password = optional(object({
-        enabled = optional(bool, false)
-      }), {})
-    }), {})
-    # smtp configuration is required if password authentication is enabled
-    smtp = optional(object({
-      enabled  = optional(bool, false)
-      username = optional(string, null)
-      password = optional(string, null)
-    }), {})
-    # cloudflare turnstile captcha
-    captcha = optional(object({
-      enabled = optional(bool, false)
-    }), {})
-  })
-}
-
-variable "monitoring" {
-  type = object({
-    enabled         = optional(bool, false)
-    discord_webhook = optional(string)
-    loki = object({
-      enabled    = optional(bool, false)
-      access_key = optional(string)
-      secret_key = optional(string)
-    })
-    mimir = object({
-      enabled    = optional(bool, false)
-      access_key = optional(string)
-      secret_key = optional(string)
-    })
-    tempo = object({
-      enabled    = optional(bool, false)
-      access_key = optional(string)
-      secret_key = optional(string)
-    })
-  })
-}
-
-variable "discord_client_id" {
-  type     = string
-  default  = null
-  nullable = true
-}
-variable "discord_client_secret" {
-  type     = string
-  default  = null
-  nullable = true
-}
-
-variable "dns_api_token" {
-  type     = string
-  default  = null
-  nullable = true
-}
-
-variable "cert_manager" {
-  type = object({
-    enabled = optional(bool, false)
-    dns_resolver = object({
-      enabled = optional(bool, false)
-    })
-  })
-}
-
-variable "external_dns" {
-  type = object({
-    enabled = optional(bool, true)
-  })
-}
-
-
-variable "github_enabled" {
-  type        = bool
-  description = "Create repository deploy keys and webhooks through GitHub."
-  default     = true
-  nullable    = false
-}
-
 variable "git_credentials" {
   type = object({
-    infra_deploy_key     = optional(string)
-    challenge_deploy_key = optional(string)
+    infra_deploy_key      = optional(string)
+    challenge_deploy_key  = optional(string)
+    argocd_webhook_secret = optional(string)
   })
-  description = "Read-only SSH private keys for Argo CD when GitHub automation is disabled. Omit keys for public HTTPS repositories."
+  description = "Optional read-only Git SSH keys and GitHub webhook secret for Argo CD."
   default     = {}
   nullable    = false
   sensitive   = true
+}
+
+variable "challenge_repo" {
+  type        = string
+  description = "Optional challenge repository URL to register with Argo CD."
+  default     = null
 }
 
 variable "git_ssh_known_hosts" {
@@ -216,4 +87,10 @@ variable "hcloud_robot_password" {
   description = "Hetzner Robot web service password for dedicated workers."
   default     = null
   sensitive   = true
+}
+
+variable "argocd_helm_values" {
+  type        = any
+  description = "Optional Helm settings for the Argo CD installation, such as SSO and resource limits."
+  default     = {}
 }

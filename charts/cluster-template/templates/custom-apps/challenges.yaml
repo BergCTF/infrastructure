@@ -1,4 +1,4 @@
-{{- if .Values.challenges.enabled }}
+{{- if and .Values.berg.enabled .Values.challenges.enabled }}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application

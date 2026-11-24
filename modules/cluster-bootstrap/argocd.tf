@@ -7,11 +7,23 @@ resource "helm_release" "infra_argocd" {
 
   # install crds via talos
   skip_crds = true
-  values = [yamlencode({
-    configs = {
-      ssh = { extraHosts = var.git_ssh_known_hosts }
-    }
-  })]
+  values = [
+    yamlencode({
+      global = var.argocd_domain == null ? {} : { domain = var.argocd_domain }
+      configs = {
+        cm     = var.argocd_domain == null ? {} : { url = "https://${var.argocd_domain}" }
+        params = { "server.insecure" = true }
+      }
+    }),
+    yamlencode(var.argocd_helm_values),
+    yamlencode({
+      configs = { ssh = { extraHosts = var.git_ssh_known_hosts } }
+      extraObjects = concat(
+        try(var.argocd_helm_values.extraObjects, []),
+        local.gitops_seed,
+      )
+    }),
+  ]
   set_sensitive = var.argocd_webhook_secret == null ? [] : [{
     name  = "configs.secret.githubSecret"
     value = var.argocd_webhook_secret
@@ -22,28 +34,6 @@ resource "helm_release" "infra_argocd" {
       value = "false"
     }
   ]
-}
-
-# required appprojects for initial sync wave
-resource "kubernetes_manifest" "appproject_argocd_apps" {
-  depends_on = [helm_release.infra_argocd]
-  manifest   = yamldecode(file("../manifests/${var.governance_name}-${var.env}/appprojects/argocd-apps.yaml"))
-}
-
-resource "kubernetes_manifest" "appproject_misc_argocd_apps" {
-  depends_on = [helm_release.infra_argocd]
-  manifest   = yamldecode(file("../manifests/${var.governance_name}-${var.env}/appprojects/misc-argocd-apps.yaml"))
-}
-
-resource "kubernetes_manifest" "appproject_appprojects" {
-  depends_on = [helm_release.infra_argocd]
-  manifest   = yamldecode(file("../manifests/${var.governance_name}-${var.env}/appprojects/appprojects.yaml"))
-}
-
-# misc apps - self-referential
-resource "kubernetes_manifest" "app_misc_apps" {
-  depends_on = [helm_release.infra_argocd]
-  manifest   = yamldecode(file("../manifests/${var.governance_name}-${var.env}/misc-apps.yaml"))
 }
 
 resource "kubernetes_secret_v1" "argocd_infra_repo" {
@@ -66,7 +56,7 @@ resource "kubernetes_secret_v1" "argocd_infra_repo" {
 }
 
 resource "kubernetes_secret_v1" "argocd_challenge_repo" {
-  lifecycle { enabled = var.berg.enabled }
+  lifecycle { enabled = var.challenge_repo != null }
   metadata {
     name      = "repo-challenges"
     namespace = kubernetes_namespace_v1.infra_argocd.metadata[0].name
@@ -77,9 +67,9 @@ resource "kubernetes_secret_v1" "argocd_challenge_repo" {
 
   data = merge({
     type = "git"
-    url  = var.berg.challenge_repo
-    }, var.berg.challenge_repo_deploy_key == null ? {} : {
-    sshPrivateKey = var.berg.challenge_repo_deploy_key
+    url  = var.challenge_repo
+    }, var.challenge_repo_deploy_key == null ? {} : {
+    sshPrivateKey = var.challenge_repo_deploy_key
   })
 
   type = "Opaque"

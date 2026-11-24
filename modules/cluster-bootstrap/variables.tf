@@ -1,15 +1,3 @@
-# cross module variables
-variable "env" {
-  type        = string
-  description = "Environment name, eg test"
-}
-
-variable "governance_name" {
-  type        = string
-  description = "Logical grouping of multiple environments"
-}
-
-# argocd infra repo settings
 variable "infra_repo" {
   type        = string
   description = "url of argocd infra repo"
@@ -34,149 +22,33 @@ variable "argocd_webhook_secret" {
   sensitive   = true
 }
 
-# email is required for password login -otherwise only discord is supported
-variable "email_enabled" {
-  type    = bool
-  default = false
+variable "challenge_repo" {
+  type        = string
+  description = "Optional challenge repository URL to register with Argo CD."
+  default     = null
 }
 
-variable "email_username" {
-  type    = string
-  default = null
-}
-
-variable "email_password" {
-  type    = string
-  default = null
-}
-
-check "email_username_set" {
-  assert {
-    condition     = !var.email_enabled || var.email_username != null
-    error_message = "Ensure email_username is set"
-  }
-}
-
-check "email_password_set" {
-  assert {
-    condition     = !var.email_enabled || var.email_password != null
-    error_message = "Ensure email_password is set"
-  }
-}
-
-variable "discord_client_id" {
-  type    = string
-  default = null
-}
-
-variable "discord_client_secret" {
-  type    = string
-  default = null
-}
-
-variable "discord_bot_token" {
-  type    = string
-  default = null
-}
-
-variable "berg" {
-  type = object({
-    enabled                   = bool
-    pull_secret               = optional(string)
-    challenge_repo            = optional(string)
-    challenge_repo_deploy_key = optional(string)
-    backups = object({
-      enabled    = optional(bool, false)
-      access_key = optional(string)
-      secret_key = optional(string)
-    })
-  })
-}
-
-check "challenge_repo_set" {
-  assert {
-    condition     = !var.berg.enabled || var.berg.challenge_repo != null
-    error_message = "Ensure challenge_repo is set"
-  }
-}
-
-check "pull_secret_set" {
-  assert {
-    condition     = !var.berg.enabled || var.berg.pull_secret != null
-    error_message = "Ensure pull_secret is set"
-  }
-}
-
-variable "authentik" {
-  type = object({
-    enabled = bool
-    backups = object({
-      enabled    = optional(bool, false)
-      access_key = optional(string)
-      secret_key = optional(string)
-    })
-  })
-}
-
-variable "monitoring" {
-  type = object({
-    enabled         = optional(bool, false)
-    discord_webhook = optional(string)
-    loki = object({
-      enabled    = optional(bool, false)
-      access_key = optional(string)
-      secret_key = optional(string)
-    })
-    mimir = object({
-      enabled    = optional(bool, false)
-      access_key = optional(string)
-      secret_key = optional(string)
-    })
-    tempo = object({
-      enabled    = optional(bool, false)
-      access_key = optional(string)
-      secret_key = optional(string)
-    })
-  })
-}
-
-variable "dns_api_token" {
-  type     = string
-  default  = null
-  nullable = true
-}
-
-check "dns_api_token_set" {
-  assert {
-    condition     = (var.cert_manager.enabled || var.external_dns.enabled) && var.dns_api_token != null
-    error_message = "dns_api_token should be set if cert-manager or external-dns are enabled"
-  }
-}
-
-variable "cert_manager" {
-  type = object({
-    enabled = optional(bool, true)
-    dns_resolver = object({
-      enabled = optional(bool, false)
-    })
-  })
-}
-
-variable "external_dns" {
-  type = object({
-    enabled = optional(bool, true)
-  })
-}
-
-check "dns_resolver_api_token_set" {
-  assert {
-    condition     = !var.cert_manager.enabled || !var.cert_manager.dns_resolver.enabled || var.dns_api_token != null
-    error_message = "Ensure dns_resolver_api_token is set"
-  }
+variable "challenge_repo_deploy_key" {
+  type        = string
+  description = "SSH private key for a private challenge repository."
+  default     = null
+  sensitive   = true
 }
 
 variable "git_ssh_known_hosts" {
   type        = string
   description = "Verified OpenSSH known_hosts entries for self-hosted Git servers."
   default     = ""
+}
+
+variable "argocd_helm_values" {
+  type        = any
+  description = "Optional Helm settings for the Argo CD installation, such as SSO and resource limits."
+  default     = {}
+}
+
+variable "argocd_domain" {
+  type        = string
+  description = "Public hostname of the Argo CD installation."
+  default     = null
 }

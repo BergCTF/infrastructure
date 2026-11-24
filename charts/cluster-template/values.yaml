@@ -26,6 +26,7 @@ challenges:
   # repo: git@github.com:<YOUR-ORG>/challenges.git
 
 berg:
+  enabled: true
   anonymousAccess: false
   # chart version - defaults to Chart.AppVersion
   # version: 
@@ -68,7 +69,8 @@ gateways:
     enabled: true
 
 authentik:
-  # enable smtp support (expects secrets to be provisioned by cluster-bootstrap)
+  enabled: true
+  # enable smtp support (expects an existing Kubernetes Secret)
   smtp: false
   database:
     replicas: 1
@@ -99,6 +101,7 @@ observability:
       # endpoint
 
 certManager:
+  enabled: true
   defaultClusterIssuer: letsencrypt-prod-dns
   clusterIssuers:
     - name: letsencrypt-prod-dns
@@ -112,7 +115,6 @@ certManager:
             - dns01:
                 cloudflare:
                   apiTokenSecretRef:
-                    # deployed by cluster-bootstrap
                     name: dns-api-key
                     key: api-token
                 # webhook:
@@ -124,11 +126,6 @@ certManager:
                 #       key: api-token
 
 dns:
+  externalDnsEnabled: true
   # cloudflare or hetzner, used for external-dns and cert-manager
   provider: cloudflare
-
-cilium:
-  enabled: true
-  # Use tunnel routing when Hetzner Robot workers are configured.
-  bareMetal: false
-
