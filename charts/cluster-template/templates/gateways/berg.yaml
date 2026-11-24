@@ -70,9 +70,11 @@ spec:
   kube:
     service:
       type: LoadBalancer
+      {{- if .Values.gateway.hetzner.enabled }}
       extraAnnotations:
         load-balancer.hetzner.cloud/uses-proxyprotocol: "true"
-        load-balancer.hetzner.cloud/name: "berg.{{ .Values.domains.cluster }}"
+        load-balancer.hetzner.cloud/name: {{ .Values.gateway.hetzner.loadBalancerName | default (printf "gateway.%s" .Values.domains.cluster) | quote }}
+      {{- end }}
     envoyContainer:
       securityContext:
         seccompProfile:
@@ -85,8 +87,13 @@ metadata:
   namespace: berg
 spec:
   default:
+    {{- if .Values.gateway.hetzner.enabled }}
     proxyProtocol: {}
+    {{- end }}
     httpSettings:
+      {{- if .Values.gateway.hetzner.enabled }}
+      useRemoteAddress: true
+      {{- end }}
       upgradeConfig:
         enabledUpgrades:
           - websocket

@@ -99,7 +99,7 @@ No resources.
 | <a name="input_discord_client_secret"></a> [discord\_client\_secret](#input\_discord\_client\_secret) | n/a | `string` | `null` | no |
 | <a name="input_dns_api_token"></a> [dns\_api\_token](#input\_dns\_api\_token) | n/a | `string` | `null` | no |
 | <a name="input_env"></a> [env](#input\_env) | Environment name, eg test | `string` | n/a | yes |
-| <a name="input_external_dns"></a> [external\_dns](#input\_external\_dns) | n/a | <pre>object({<br/>    enabled = optional(bool, true)<br/>  })</pre> | `{}` | no |
+| <a name="input_external_dns"></a> [external\_dns](#input\_external\_dns) | Opt in to seeding the External DNS API token. | <pre>object({<br/>    enabled = optional(bool, false)<br/>  })</pre> | `{}` | no |
 | <a name="input_git_credentials"></a> [git\_credentials](#input\_git\_credentials) | Optional read-only Git SSH keys for Argo CD. | <pre>object({<br/>    infra_deploy_key     = optional(string)<br/>    challenge_deploy_key = optional(string)<br/>  })</pre> | `{}` | no |
 | <a name="input_git_ssh_known_hosts"></a> [git\_ssh\_known\_hosts](#input\_git\_ssh\_known\_hosts) | Verified OpenSSH known\_hosts entries for self-hosted Git servers. | `string` | `""` | no |
 | <a name="input_governance_name"></a> [governance\_name](#input\_governance\_name) | Logical grouping of multiple environments | `string` | n/a | yes |

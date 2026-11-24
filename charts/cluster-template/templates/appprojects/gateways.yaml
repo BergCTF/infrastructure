@@ -13,8 +13,6 @@ spec:
   namespaceResourceWhitelist:
     - group: gateway.networking.k8s.io
       kind: Gateway
-    - group: gateway.networking.k8s.io
-      kind: HTTPRoute
     - group: gateway.kgateway.dev
       kind: GatewayParameters
     - group: monitoring.coreos.com

@@ -227,8 +227,9 @@ variable "cert_manager" {
 }
 
 variable "external_dns" {
+  description = "Opt in to seeding the External DNS API token."
   type = object({
-    enabled = optional(bool, true)
+    enabled = optional(bool, false)
   })
   default = {}
 }

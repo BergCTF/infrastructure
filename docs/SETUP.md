@@ -96,9 +96,23 @@ It supplies Cilium, Hubble Relay, and the Hubble UI. Set
 ## Gateway
 
 The cluster chart deploys kgateway and a shared Gateway named `gw-berg` in the
-`berg` namespace. Point the platform and challenge DNS names at its Hetzner
-load balancer. The Gateway serves HTTP on 80, HTTPS on 443, and challenge
-traffic on 1337 (HTTPS) and 31337 (TLS termination).
+`berg` namespace. The Argo CD Helm release attaches its own HTTPRoute to that
+Gateway. Point the platform and challenge DNS names at the Gateway's load
+balancer. The Gateway serves HTTP on 80, HTTPS on 443, and challenge traffic on
+1337 (HTTPS) and 31337 (TLS termination).
+
+On Hetzner, enable the load balancer annotations and PROXY protocol together:
+
+```yaml
+gateway:
+  hetzner:
+    enabled: true
+    # Optional display name. Defaults to gateway.<cluster domain>.
+    loadBalancerName: lb.prod.example.org
+```
+
+The display name is informational. Create DNS records for the platform and
+challenge names yourself, or opt in to External DNS.
 
 With cert-manager enabled, the chart requests the `berg-gateway-tls`
 certificate through its configured ClusterIssuer. If you disable cert-manager,
@@ -108,9 +122,11 @@ provide a TLS Secret named `berg-gateway-tls` in the `berg` namespace.
 
 OpenTofu writes the enabled seed credentials before Argo CD starts. Pass
 `dns_api_token` into the root module for the default cert-manager DNS solver
-and External DNS. Set the token through your deployment secret store. The
-bootstrap module writes it to both namespaces, and cert-manager issues the
-gateway certificate after DNS validation. Protect access to the OpenTofu state,
+and as the token for External DNS when enabled. Set it through your deployment
+secret store. Cert-manager issues the gateway certificate after DNS validation.
+For automated DNS records, set `external_dns.enabled = true` in OpenTofu and
+`dns.externalDnsEnabled: true` in the chart. Otherwise, create the application
+records manually. Cert-manager still manages its DNS-01 challenge records. Protect access to the OpenTofu state,
 which contains the seeded credentials.
 
 Keep workload configuration in the chart. Set `berg.enabled`,

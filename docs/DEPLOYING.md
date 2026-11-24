@@ -8,7 +8,7 @@ directory should contain the rendered top-level Applications and the
 the chart values so its child Applications can locate their manifests.
 
 Supply `dns_api_token` through your deployment environment for the default
-cert-manager and External DNS setup. Provision the cluster first:
+cert-manager DNS solver. Provision the cluster first:
 
 ```bash
 tofu plan -var-file ./envs/myenv.tfvars -target=module.berg-cluster.module.cluster

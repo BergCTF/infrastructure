@@ -32,6 +32,19 @@ resource "helm_release" "infra_argocd" {
   values = [
     yamlencode({
       global = var.argocd_domain == null ? {} : { domain = var.argocd_domain }
+      server = {
+        httproute = {
+          enabled   = var.argocd_domain != null
+          hostnames = var.argocd_domain == null ? [] : [var.argocd_domain]
+          parentRefs = [
+            for listener in ["https", "http"] : {
+              name        = "gw-berg"
+              namespace   = "berg"
+              sectionName = listener
+            }
+          ]
+        }
+      }
       configs = {
         cm = merge(
           var.argocd_domain == null ? {} : { url = "https://${var.argocd_domain}" },

@@ -67,7 +67,7 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
-| <a name="input_argocd_domain"></a> [argocd\_domain](#input\_argocd\_domain) | Public hostname of the Argo CD installation. | `string` | `null` | no |
+| <a name="input_argocd_domain"></a> [argocd\_domain](#input\_argocd\_domain) | Public hostname for Argo CD and its Gateway API route. | `string` | `null` | no |
 | <a name="input_argocd_helm_values"></a> [argocd\_helm\_values](#input\_argocd\_helm\_values) | Optional Helm settings for the Argo CD installation, such as SSO and resource limits. | `any` | `{}` | no |
 | <a name="input_authentik"></a> [authentik](#input\_authentik) | n/a | <pre>object({<br/>    enabled = optional(bool, false)<br/>    domain  = optional(string)<br/>    backups = optional(object({<br/>      enabled    = optional(bool, false)<br/>      access_key = optional(string)<br/>      secret_key = optional(string)<br/>    }), {})<br/>  })</pre> | `{}` | no |
 | <a name="input_berg"></a> [berg](#input\_berg) | n/a | <pre>object({<br/>    enabled     = optional(bool, false)<br/>    pull_secret = optional(string)<br/>    backups = optional(object({<br/>      enabled    = optional(bool, false)<br/>      access_key = optional(string)<br/>      secret_key = optional(string)<br/>    }), {})<br/>  })</pre> | `{}` | no |

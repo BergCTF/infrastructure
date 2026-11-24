@@ -112,7 +112,13 @@ certManager:
                 #       name: dns-api-key
                 #       key: api-token
 
+gateway:
+  hetzner:
+    enabled: false
+    # Optional. Defaults to gateway.<cluster domain>.
+    loadBalancerName: ""
+
 dns:
-  externalDnsEnabled: true
+  externalDnsEnabled: false
   # cloudflare or hetzner, used for external-dns and cert-manager
   provider: cloudflare

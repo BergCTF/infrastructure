@@ -42,7 +42,7 @@ variable "argocd_helm_values" {
 
 variable "argocd_domain" {
   type        = string
-  description = "Public hostname of the Argo CD installation."
+  description = "Public hostname for Argo CD and its Gateway API route."
   default     = null
 }
 

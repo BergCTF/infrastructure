@@ -25,9 +25,11 @@ run "private_gitops_seed" {
     condition = (
       yamldecode(helm_release.infra_argocd.values[2]).extraObjects[0].spec.sourceRepos[0] == var.infra_repo &&
       yamldecode(helm_release.infra_argocd.values[2]).extraObjects[1].spec.sources[1].path == "manifests/example-prod/appprojects" &&
-      yamldecode(helm_release.infra_argocd.values[2]).configs.ssh.extraHosts == var.git_ssh_known_hosts
+      yamldecode(helm_release.infra_argocd.values[2]).configs.ssh.extraHosts == var.git_ssh_known_hosts &&
+      yamldecode(helm_release.infra_argocd.values[0]).server.httproute.hostnames[0] == var.argocd_domain &&
+      yamldecode(helm_release.infra_argocd.values[0]).server.httproute.parentRefs[0].name == "gw-berg"
     )
-    error_message = "The Argo CD release must install the scoped seed and Forgejo host key."
+    error_message = "The Argo CD release must install the scoped seed, Forgejo host key, and Gateway route."
   }
 }
 
@@ -45,6 +47,11 @@ run "public_gitops_seed" {
   assert {
     condition     = !contains(keys(kubernetes_secret_v1.argocd_infra_repo.data), "sshPrivateKey")
     error_message = "A public repository must work without an SSH key."
+  }
+
+  assert {
+    condition     = try(kubernetes_secret_v1.ed_dns_api_token.metadata[0].name, null) == null
+    error_message = "External DNS credentials must only be created when explicitly enabled."
   }
 }
 
