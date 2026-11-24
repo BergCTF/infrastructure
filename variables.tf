@@ -29,12 +29,17 @@ variable "cluster" {
       count    = number
     }))
 
-    worker_pools = list(object({
+    worker_pools = optional(list(object({
       name     = string
       type     = string
       location = string
       count    = number
-    }))
+      subnet   = optional(string)
+    })), [])
+
+    bare_metal_nodepools      = optional(any, [])
+    bare_metal_config_patches = optional(list(string), [])
+    hcloud_vswitch_id         = optional(number)
 
     infra_repo = object({
       url  = string
@@ -58,6 +63,11 @@ variable "berg" {
     })
     discord_bot_token = optional(string, null)
   })
+
+  validation {
+    condition     = !var.berg.enabled || try(trimspace(var.berg.challenge_repo) != "", false)
+    error_message = "Set berg.challenge_repo when Berg is enabled."
+  }
 }
 
 variable "harbor" {
@@ -169,3 +179,41 @@ variable "external_dns" {
   })
 }
 
+
+variable "github_enabled" {
+  type        = bool
+  description = "Create repository deploy keys and webhooks through GitHub."
+  default     = true
+  nullable    = false
+}
+
+variable "git_credentials" {
+  type = object({
+    infra_deploy_key     = optional(string)
+    challenge_deploy_key = optional(string)
+  })
+  description = "Read-only SSH private keys for Argo CD when GitHub automation is disabled. Omit keys for public HTTPS repositories."
+  default     = {}
+  nullable    = false
+  sensitive   = true
+}
+
+variable "git_ssh_known_hosts" {
+  type        = string
+  description = "Verified OpenSSH known_hosts entries for self-hosted Git servers."
+  default     = ""
+  nullable    = false
+}
+
+variable "hcloud_robot_user" {
+  type        = string
+  description = "Hetzner Robot web service username for dedicated workers."
+  default     = null
+}
+
+variable "hcloud_robot_password" {
+  type        = string
+  description = "Hetzner Robot web service password for dedicated workers."
+  default     = null
+  sensitive   = true
+}

@@ -1,6 +1,23 @@
-# opentofu-modules
+# Berg infrastructure
 
 These modules allow provisioning a functional cluster on Hetzner.
+
+## Usage
+
+- [Set up Forgejo or Hetzner bare-metal workers](docs/SETUP.md)
+- [Deploy or upgrade a cluster](docs/DEPLOYING.md)
+
+| Module | Purpose |
+| --- | --- |
+| [Cluster](modules/cluster/README.md) | Talos and Kubernetes on Hetzner Cloud and Robot |
+| [Cluster bootstrap](modules/cluster-bootstrap/README.md) | Argo CD and the initial Kubernetes GitOps resources |
+| [GitHub](modules/github/README.md) | Optional deploy key and webhook automation |
+| [Authentik](modules/authentik/README.md) | Identity provider configuration |
+| [Harbor](modules/harbor/README.md) | Registry configuration |
+
+Regenerate the reference sections after changing module interfaces with
+`terraform-docs markdown table --output-file README.md --output-mode inject .`.
+Run the same command from each changed module directory.
 
 ## Todo
 
@@ -12,3 +29,60 @@ Some things aren't currently included, such as:
 
 There's probably a bunch of stuff we can disable assuming we don't want authentik password auth
 
+
+<!-- BEGIN_TF_DOCS -->
+## Requirements
+
+| Name | Version |
+| ---- | ------- |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.11.0 |
+| <a name="requirement_authentik"></a> [authentik](#requirement\_authentik) | >= 2025.10.1 |
+| <a name="requirement_github"></a> [github](#requirement\_github) | >= 6.0 |
+
+## Providers
+
+No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_authentik"></a> [authentik](#module\_authentik) | ./modules/authentik | n/a |
+| <a name="module_cluster"></a> [cluster](#module\_cluster) | ./modules/cluster | n/a |
+| <a name="module_cluster_bootstrap"></a> [cluster\_bootstrap](#module\_cluster\_bootstrap) | ./modules/cluster-bootstrap | n/a |
+| <a name="module_github"></a> [github](#module\_github) | ./modules/github | n/a |
+
+## Resources
+
+No resources.
+
+## Inputs
+
+| Name | Description | Type | Default | Required |
+| ---- | ----------- | ---- | ------- | :------: |
+| <a name="input_authentik"></a> [authentik](#input\_authentik) | n/a | <pre>object({<br/>    enabled = bool<br/>    domain  = optional(string)<br/>    branding = object({<br/>      title               = string<br/>      favicon             = string<br/>      logo                = string<br/>      background_image    = string<br/>      default_application = string<br/>    })<br/>    backups = object({<br/>      enabled    = optional(bool, false)<br/>      access_key = optional(string)<br/>      secret_key = optional(string)<br/>    })<br/>    authentication = optional(object({<br/>      # enable discord federated authentication<br/>      discord = optional(object({<br/>        # discord is currently required<br/>        enabled = optional(bool, true)<br/>        # required for role mappings<br/>        guild_id      = optional(string)<br/>        client_id     = optional(string)<br/>        client_secret = optional(string)<br/>        # arbitrary group -> discord role id mappings<br/>        role_mappings = optional(map(string), {})<br/>      }), {})<br/>      # enable password authentication<br/>      password = optional(object({<br/>        enabled = optional(bool, false)<br/>      }), {})<br/>    }), {})<br/>    # smtp configuration is required if password authentication is enabled<br/>    smtp = optional(object({<br/>      enabled  = optional(bool, false)<br/>      username = optional(string, null)<br/>      password = optional(string, null)<br/>    }), {})<br/>    # cloudflare turnstile captcha<br/>    captcha = optional(object({<br/>      enabled = optional(bool, false)<br/>    }), {})<br/>  })</pre> | n/a | yes |
+| <a name="input_berg"></a> [berg](#input\_berg) | n/a | <pre>object({<br/>    enabled           = bool<br/>    domain            = optional(string)<br/>    challenge_repo    = optional(string)<br/>    pull_secret       = optional(string)<br/>    admin_access_only = optional(bool, true)<br/>    redirect_uris     = optional(list(string), [])<br/>    backups = object({<br/>      enabled    = optional(bool, false)<br/>      access_key = optional(string)<br/>      secret_key = optional(string)<br/>    })<br/>    discord_bot_token = optional(string, null)<br/>  })</pre> | n/a | yes |
+| <a name="input_cert_manager"></a> [cert\_manager](#input\_cert\_manager) | n/a | <pre>object({<br/>    enabled = optional(bool, false)<br/>    dns_resolver = object({<br/>      enabled = optional(bool, false)<br/>    })<br/>  })</pre> | n/a | yes |
+| <a name="input_cluster"></a> [cluster](#input\_cluster) | cluster configuration | <pre>object({<br/>    domain                                     = string<br/>    kube_api_loadbalancer_enabled              = optional(bool, false)<br/>    cluster_allow_scheduling_on_control_planes = optional(bool, false)<br/><br/>    control_plane_pools = list(object({<br/>      name     = string<br/>      type     = string<br/>      location = string<br/>      count    = number<br/>    }))<br/><br/>    worker_pools = optional(list(object({<br/>      name     = string<br/>      type     = string<br/>      location = string<br/>      count    = number<br/>      subnet   = optional(string)<br/>    })), [])<br/><br/>    bare_metal_nodepools      = optional(any, [])<br/>    bare_metal_config_patches = optional(list(string), [])<br/>    hcloud_vswitch_id         = optional(number)<br/><br/>    infra_repo = object({<br/>      url  = string<br/>      path = string<br/>    })<br/>  })</pre> | n/a | yes |
+| <a name="input_discord_client_id"></a> [discord\_client\_id](#input\_discord\_client\_id) | n/a | `string` | `null` | no |
+| <a name="input_discord_client_secret"></a> [discord\_client\_secret](#input\_discord\_client\_secret) | n/a | `string` | `null` | no |
+| <a name="input_dns_api_token"></a> [dns\_api\_token](#input\_dns\_api\_token) | n/a | `string` | `null` | no |
+| <a name="input_env"></a> [env](#input\_env) | Environment name, eg test | `string` | n/a | yes |
+| <a name="input_external_dns"></a> [external\_dns](#input\_external\_dns) | n/a | <pre>object({<br/>    enabled = optional(bool, true)<br/>  })</pre> | n/a | yes |
+| <a name="input_git_credentials"></a> [git\_credentials](#input\_git\_credentials) | Read-only SSH private keys for Argo CD when GitHub automation is disabled. Omit keys for public HTTPS repositories. | <pre>object({<br/>    infra_deploy_key     = optional(string)<br/>    challenge_deploy_key = optional(string)<br/>  })</pre> | `{}` | no |
+| <a name="input_git_ssh_known_hosts"></a> [git\_ssh\_known\_hosts](#input\_git\_ssh\_known\_hosts) | Verified OpenSSH known\_hosts entries for self-hosted Git servers. | `string` | `""` | no |
+| <a name="input_github_enabled"></a> [github\_enabled](#input\_github\_enabled) | Create repository deploy keys and webhooks through GitHub. | `bool` | `true` | no |
+| <a name="input_governance_name"></a> [governance\_name](#input\_governance\_name) | Logical grouping of multiple environments | `string` | n/a | yes |
+| <a name="input_harbor"></a> [harbor](#input\_harbor) | n/a | <pre>object({<br/>    enabled    = optional(bool, false)<br/>    domain     = optional(string)<br/>    access_key = optional(string)<br/>    secret_key = optional(string)<br/>  })</pre> | n/a | yes |
+| <a name="input_hcloud_robot_password"></a> [hcloud\_robot\_password](#input\_hcloud\_robot\_password) | Hetzner Robot web service password for dedicated workers. | `string` | `null` | no |
+| <a name="input_hcloud_robot_user"></a> [hcloud\_robot\_user](#input\_hcloud\_robot\_user) | Hetzner Robot web service username for dedicated workers. | `string` | `null` | no |
+| <a name="input_hetzner_token"></a> [hetzner\_token](#input\_hetzner\_token) | API Token for Hetzner infrastructure | `string` | n/a | yes |
+| <a name="input_monitoring"></a> [monitoring](#input\_monitoring) | n/a | <pre>object({<br/>    enabled         = optional(bool, false)<br/>    discord_webhook = optional(string)<br/>    loki = object({<br/>      enabled    = optional(bool, false)<br/>      access_key = optional(string)<br/>      secret_key = optional(string)<br/>    })<br/>    mimir = object({<br/>      enabled    = optional(bool, false)<br/>      access_key = optional(string)<br/>      secret_key = optional(string)<br/>    })<br/>    tempo = object({<br/>      enabled    = optional(bool, false)<br/>      access_key = optional(string)<br/>      secret_key = optional(string)<br/>    })<br/>  })</pre> | n/a | yes |
+
+## Outputs
+
+| Name | Description |
+| ---- | ----------- |
+| <a name="output_kubeconfig"></a> [kubeconfig](#output\_kubeconfig) | n/a |
+| <a name="output_talosconfig"></a> [talosconfig](#output\_talosconfig) | n/a |
+<!-- END_TF_DOCS -->

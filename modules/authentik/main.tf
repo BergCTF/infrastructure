@@ -8,9 +8,3 @@ terraform {
     }
   }
 }
-
-provider "authentik" {
-  url   = "https://${var.authentik.domain}"
-  token = var.authentik_token
-}
-

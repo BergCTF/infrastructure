@@ -3,10 +3,19 @@ resource "helm_release" "infra_argocd" {
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
   namespace  = kubernetes_namespace_v1.infra_argocd.metadata[0].name
-  version    = "9.3.4"
+  version    = "10.18.3"
 
   # install crds via talos
   skip_crds = true
+  values = [yamlencode({
+    configs = {
+      ssh = { extraHosts = var.git_ssh_known_hosts }
+    }
+  })]
+  set_sensitive = var.argocd_webhook_secret == null ? [] : [{
+    name  = "configs.secret.githubSecret"
+    value = var.argocd_webhook_secret
+  }]
   set = [
     {
       name  = "crds.install"
@@ -46,11 +55,12 @@ resource "kubernetes_secret_v1" "argocd_infra_repo" {
     }
   }
 
-  data = {
-    type          = "git"
-    url           = var.infra_repo
+  data = merge({
+    type = "git"
+    url  = var.infra_repo
+    }, var.infra_repo_deploy_key == null ? {} : {
     sshPrivateKey = var.infra_repo_deploy_key
-  }
+  })
 
   type = "Opaque"
 }
@@ -65,27 +75,12 @@ resource "kubernetes_secret_v1" "argocd_challenge_repo" {
     }
   }
 
-  data = {
-    type          = "git"
-    url           = var.berg.challenge_repo
+  data = merge({
+    type = "git"
+    url  = var.berg.challenge_repo
+    }, var.berg.challenge_repo_deploy_key == null ? {} : {
     sshPrivateKey = var.berg.challenge_repo_deploy_key
-  }
-
-  type = "Opaque"
-}
-
-resource "kubernetes_secret_v1" "argocd_webhook_secret" {
-  metadata {
-    name      = "argocd-webhook-secret"
-    namespace = kubernetes_namespace_v1.infra_argocd.metadata[0].name
-    labels = {
-      "app.kubernetes.io/part-of" = "argocd"
-    }
-  }
-
-  data = {
-    secret = var.argocd_webhook_secret
-  }
+  })
 
   type = "Opaque"
 }

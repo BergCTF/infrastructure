@@ -36,7 +36,9 @@ variable "worker_pools" {
     type     = string
     location = string
     count    = number
+    subnet   = optional(string)
   }))
+  default = []
 }
 
 variable "cluster_domain" {
@@ -49,4 +51,35 @@ variable "kube_api_loadbalancer_enabled" {
 
 variable "cluster_allow_scheduling_on_control_planes" {
   type = bool
+}
+
+variable "bare_metal_nodepools" {
+  description = "Hetzner Robot worker pools using the upstream hcloud-k8s bare_metal_nodepools schema."
+  type        = any
+  default     = []
+}
+
+variable "bare_metal_config_patches" {
+  description = "Talos configuration patches applied to all bare-metal workers."
+  type        = list(string)
+  default     = []
+}
+
+variable "hcloud_vswitch_id" {
+  description = "Existing Hetzner Robot vSwitch ID. The upstream module creates one by default when bare-metal workers are configured."
+  type        = number
+  default     = null
+}
+
+variable "hcloud_robot_user" {
+  type        = string
+  description = "Hetzner Robot web service username for dedicated workers."
+  default     = null
+}
+
+variable "hcloud_robot_password" {
+  type        = string
+  description = "Hetzner Robot web service password for dedicated workers."
+  default     = null
+  sensitive   = true
 }

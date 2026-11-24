@@ -3,6 +3,11 @@ terraform {
   required_version = ">= 1.11.0"
 
   required_providers {
+    authentik = {
+      source  = "goauthentik/authentik"
+      version = ">= 2025.10.1"
+    }
+
     github = {
       source  = "integrations/github"
       version = ">= 6.0"
@@ -11,51 +16,38 @@ terraform {
 }
 
 locals {
-  infra_repository_name  = trimsuffix(reverse(split("/", var.cluster.infra_repo.url))[0], ".git")
-  infra_deploy_key_title = "${var.governance_name}-${var.env}-argocd-credential"
-  infra_deploy_key_slug  = "${local.infra_repository_name}-${local.infra_deploy_key_title}"
-  infra_deploy_key       = module.github.generated_deploy_keys[local.infra_deploy_key_slug].private_key_openssh
-
-  challenge_repository_name  = var.berg.enabled ? trimsuffix(reverse(split("/", var.berg.challenge_repo))[0], ".git") : null
-  challenge_deploy_key_title = "${var.governance_name}-${var.env}-argocd-credential"
-  challenge_deploy_key_slug  = "${local.challenge_repository_name}-${local.challenge_deploy_key_title}"
-  challenge_deploy_key       = module.github.generated_deploy_keys[local.challenge_deploy_key_slug].private_key_openssh
+  github_repositories = [
+    for url in concat([var.cluster.infra_repo.url], var.berg.enabled ? [var.berg.challenge_repo] : []) :
+    trimsuffix(reverse(split("/", url))[0], ".git")
+  ]
+  deploy_key_title = "${var.governance_name}-${var.env}-argocd-credential"
+  infra_deploy_key = var.github_enabled ? module.github.generated_deploy_keys["${local.github_repositories[0]}-${local.deploy_key_title}"].private_key_openssh : var.git_credentials.infra_deploy_key
+  challenge_deploy_key = !var.berg.enabled ? null : (
+    var.github_enabled ? module.github.generated_deploy_keys["${local.github_repositories[1]}-${local.deploy_key_title}"].private_key_openssh : var.git_credentials.challenge_deploy_key
+  )
 }
 
 module "github" {
   source = "./modules/github"
 
+  lifecycle {
+    enabled = var.github_enabled
+  }
+
   providers = {
     github = github
   }
 
-  generate_deploy_keys = var.berg.enabled ? [
-    {
-      title = local.infra_deploy_key_title
-      # just the repository name please
-      repository = local.infra_repository_name
-      read_only  = true
-    },
-    {
-      title = local.challenge_deploy_key_title
-      # just the repository name please
-      repository = local.challenge_repository_name
+  generate_deploy_keys = [
+    for repository in local.github_repositories : {
+      title      = local.deploy_key_title
+      repository = repository
       read_only  = true
     }
-    ] : [
-    {
-      title = local.infra_deploy_key_title
-      # just the repository name please
-      repository = local.infra_repository_name
-      read_only  = true
-    },
   ]
 
-  argocd_url = "https://argocd.${var.cluster.domain}"
-  argocd_webhooks = var.berg.enabled ? [
-    local.infra_repository_name,
-    local.challenge_repository_name
-  ] : [local.infra_repository_name]
+  argocd_url      = "https://argocd.${var.cluster.domain}"
+  argocd_webhooks = local.github_repositories
 }
 
 module "cluster" {
@@ -71,6 +63,12 @@ module "cluster" {
 
   control_plane_pools = var.cluster.control_plane_pools
   worker_pools        = var.cluster.worker_pools
+
+  bare_metal_nodepools      = var.cluster.bare_metal_nodepools
+  bare_metal_config_patches = var.cluster.bare_metal_config_patches
+  hcloud_vswitch_id         = var.cluster.hcloud_vswitch_id
+  hcloud_robot_user         = var.hcloud_robot_user
+  hcloud_robot_password     = var.hcloud_robot_password
 }
 
 provider "kubernetes" {
@@ -99,7 +97,8 @@ module "cluster_bootstrap" {
   infra_repo            = var.cluster.infra_repo.url
   infra_repo_path       = var.cluster.infra_repo.path
   infra_repo_deploy_key = local.infra_deploy_key
-  argocd_webhook_secret = module.github.argocd_webhook_secret
+  argocd_webhook_secret = var.github_enabled ? module.github.argocd_webhook_secret : null
+  git_ssh_known_hosts   = var.git_ssh_known_hosts
 
   berg         = merge({ challenge_repo_deploy_key = local.challenge_deploy_key }, var.berg)
   monitoring   = var.monitoring
@@ -118,14 +117,17 @@ module "cluster_bootstrap" {
   discord_bot_token     = var.berg.discord_bot_token
 }
 
+provider "authentik" {
+  url   = var.authentik.enabled ? "https://${var.authentik.domain}" : null
+  token = module.cluster_bootstrap.authentik_bootstrap_token
+}
+
 module "authentik" {
   source = "./modules/authentik"
 
   lifecycle {
     enabled = var.authentik.enabled
   }
-
-  authentik_token = module.cluster_bootstrap.authentik_bootstrap_token
 
   authentik = var.authentik
 

@@ -129,4 +129,6 @@ dns:
 
 cilium:
   enabled: true
+  # Use tunnel routing when Hetzner Robot workers are configured.
+  bareMetal: false
 

@@ -17,7 +17,9 @@ variable "infra_repo" {
 
 variable "infra_repo_deploy_key" {
   type        = string
-  description = "infra repo deploy key"
+  description = "Infrastructure repository SSH key. Optional for public HTTPS repositories."
+  default     = null
+  sensitive   = true
 }
 
 variable "infra_repo_path" {
@@ -27,7 +29,9 @@ variable "infra_repo_path" {
 
 variable "argocd_webhook_secret" {
   type        = string
-  description = "argocd webhook secret"
+  description = "GitHub webhook secret for Argo CD."
+  default     = null
+  sensitive   = true
 }
 
 # email is required for password login -otherwise only discord is supported
@@ -93,13 +97,6 @@ check "challenge_repo_set" {
   assert {
     condition     = !var.berg.enabled || var.berg.challenge_repo != null
     error_message = "Ensure challenge_repo is set"
-  }
-}
-
-check "challenge_repo_deploy_key_set" {
-  assert {
-    condition     = !var.berg.enabled || var.berg.challenge_repo_deploy_key != null
-    error_message = "Ensure challenge_repo_deploy_key is set"
   }
 }
 
@@ -176,4 +173,10 @@ check "dns_resolver_api_token_set" {
     condition     = !var.cert_manager.enabled || !var.cert_manager.dns_resolver.enabled || var.dns_api_token != null
     error_message = "Ensure dns_resolver_api_token is set"
   }
+}
+
+variable "git_ssh_known_hosts" {
+  type        = string
+  description = "Verified OpenSSH known_hosts entries for self-hosted Git servers."
+  default     = ""
 }
