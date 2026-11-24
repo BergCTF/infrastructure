@@ -32,24 +32,6 @@ spec:
             automated: {}
           values:
             applications:
-              argocd-configs:
-                namespace: infra-argocd
-                additionalAnnotations:
-                  argocd.argoproj.io/sync-wave: "-1"
-                additionalLabels:
-                  app.kubernetes.io/component: argocd-configs
-                  app.kubernetes.io/name: helm-infra-argocd
-                  app.kubernetes.io/managed-by: helm-infra-argocd
-                project: argocd-apps
-                destination:
-                  namespace: infra-argocd
-                  server: https://kubernetes.default.svc
-                source:
-                  path: {{ .Values.infra.path }}
-                  repoURL: {{ .Values.infra.repo }}
-                  targetRevision: HEAD
-                syncPolicy:
-                  automated: {}
               namespaces:
                 namespace: infra-argocd
                 additionalAnnotations:
@@ -64,24 +46,6 @@ spec:
                   server: https://kubernetes.default.svc
                 source:
                   path: {{ .Values.infra.path }}/namespaces
-                  repoURL: {{ .Values.infra.repo }}
-                  targetRevision: HEAD
-                syncPolicy:
-                  automated: {}
-              appprojects:
-                namespace: infra-argocd
-                additionalAnnotations:
-                  argocd.argoproj.io/sync-wave: "-2"
-                additionalLabels:
-                  app.kubernetes.io/component: appprojects
-                  app.kubernetes.io/managed-by: helm-infra-argocd
-                  app.kubernetes.io/name: helm-infra-argocd
-                project: appprojects
-                destination:
-                  namespace: infra-argocd
-                  server: https://kubernetes.default.svc
-                source:
-                  path: {{ .Values.infra.path }}/appprojects
                   repoURL: {{ .Values.infra.repo }}
                   targetRevision: HEAD
                 syncPolicy:
@@ -151,6 +115,10 @@ spec:
                   targetRevision: HEAD
                 syncPolicy:
                   automated: {}
+                  syncOptions:
+                    - SkipDryRunOnMissingResource=true
+                  retry:
+                    limit: 8
               {{- if .Values.observability.enabled }}
               vector:
                 namespace: infra-argocd

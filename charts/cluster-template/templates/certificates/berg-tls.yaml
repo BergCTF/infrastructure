@@ -1,3 +1,4 @@
+{{- if .Values.certManager.enabled }}
 ---
 # we create a regular certificate instead of using the gateway API annotation
 # to gain more control over the certificate SANs and avoid multiple cert requests
@@ -16,6 +17,9 @@ spec:
     name: {{ .Values.certManager.defaultClusterIssuer }}
     kind: ClusterIssuer
   dnsNames:
-    - {{ .Values.domains.cluster }}
-    - "*.{{ .Values.domains.cluster }}"
-    - "*.challs.{{ .Values.domains.cluster }}"
+    {{- $cluster := .Values.domains.cluster }}
+    {{- $berg := .Values.domains.berg | default $cluster }}
+    {{- range list $cluster (printf "*.%s" $cluster) (printf "*.challs.%s" $cluster) $berg (printf "*.challs.%s" $berg) | uniq }}
+    - {{ . | quote }}
+    {{- end }}
+{{- end }}

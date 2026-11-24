@@ -1,3 +1,4 @@
+{{- if .Values.berg.enabled }}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -40,19 +41,11 @@ spec:
             {{- end }}
           gateway:
             domain: challs.{{ .Values.domains.berg | default .Values.domains.cluster }}
-            {{- if eq .Values.gateway.type "kgateway" }}
             name: gw-berg
             namespace: berg
             httpListenerName: http
             httpsListenerName: https
             httpRouteRedirectListenerName: "http"
-            {{- else }}
-            name: traefik-gateway
-            namespace: infra-traefik
-            httpListenerName: web
-            httpsListenerName: websecure
-            httpRouteRedirectListenerName: "http-chall"
-            {{- end }}
             httpRouteListenerName: "https-chall"
             tlsRouteListenerName: "tls-chall"
           handout:
@@ -152,3 +145,4 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: berg
+{{- end }}

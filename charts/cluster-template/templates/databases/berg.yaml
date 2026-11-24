@@ -1,3 +1,4 @@
+{{- if .Values.berg.enabled }}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -67,3 +68,4 @@ spec:
               backupOwnerReference: self
               method: barmanObjectStore
         {{- end }}
+{{- end }}

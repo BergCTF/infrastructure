@@ -10,10 +10,6 @@ infra:
   # repo: git@github.com:example/infrastructure.git
   # path: manifests/<environment>
 
-gateway:
-  # should be kgateway once https://github.com/kgateway-dev/kgateway/issues/13397 is resolved
-  type: traefik
-
 ctf:
   name: My CTF
   description: |
@@ -26,6 +22,7 @@ challenges:
   # repo: git@github.com:<YOUR-ORG>/challenges.git
 
 berg:
+  enabled: true
   anonymousAccess: false
   # chart version - defaults to Chart.AppVersion
   # version: 
@@ -58,17 +55,9 @@ challengeInstanceController:
   enabled: true
   clusterWide: true
 
-# configuration for gateways to deploy
-# note: each gateway will provision a LoadBalancer IP
-gateways:
-  # gateway for berg
-  berg:
-    # this should always be enabled for now
-    # disabling this will likely break bindings
-    enabled: true
-
 authentik:
-  # enable smtp support (expects secrets to be provisioned by cluster-bootstrap)
+  enabled: true
+  # enable smtp support (expects an existing Kubernetes Secret)
   smtp: false
   database:
     replicas: 1
@@ -99,6 +88,7 @@ observability:
       # endpoint
 
 certManager:
+  enabled: true
   defaultClusterIssuer: letsencrypt-prod-dns
   clusterIssuers:
     - name: letsencrypt-prod-dns
@@ -112,7 +102,6 @@ certManager:
             - dns01:
                 cloudflare:
                   apiTokenSecretRef:
-                    # deployed by cluster-bootstrap
                     name: dns-api-key
                     key: api-token
                 # webhook:
@@ -123,10 +112,13 @@ certManager:
                 #       name: dns-api-key
                 #       key: api-token
 
+gateway:
+  hetzner:
+    enabled: false
+    # Optional. Defaults to gateway.<cluster domain>.
+    loadBalancerName: ""
+
 dns:
+  externalDnsEnabled: false
   # cloudflare or hetzner, used for external-dns and cert-manager
   provider: cloudflare
-
-cilium:
-  enabled: true
-

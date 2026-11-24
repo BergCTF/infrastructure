@@ -1,3 +1,4 @@
+{{- if .Values.authentik.enabled }}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -104,7 +105,6 @@ spec:
               main:
                 enabled: true
                 parentRefs:
-                  {{- if eq .Values.gateway.type "kgateway" }}
                   - group: gateway.networking.k8s.io
                     kind: Gateway
                     name: gw-berg
@@ -115,18 +115,6 @@ spec:
                     name: gw-berg
                     namespace: berg
                     sectionName: http
-                  {{- else }}
-                  - group: gateway.networking.k8s.io
-                    kind: Gateway
-                    name: traefik
-                    namespace: infra-traefik
-                    sectionName: web
-                  - group: gateway.networking.k8s.io
-                    kind: Gateway
-                    name: traefik
-                    namespace: infra-traefik
-                    sectionName: websecure
-                  {{- end }}
                 hostnames:
                   - idp.{{ .Values.domains.cluster }}
           worker:
@@ -147,3 +135,4 @@ spec:
             enabled: false
     - repoURL: {{ .Values.infra.repo }}
       path: {{ .Values.infra.path}}/authentik-extra
+{{- end }}

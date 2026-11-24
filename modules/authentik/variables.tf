@@ -1,7 +1,3 @@
-variable "authentik_token" {
-  type = string
-}
-
 variable "authentik" {
   type = object({
     enabled = bool

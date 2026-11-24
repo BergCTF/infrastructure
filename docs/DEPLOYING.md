@@ -1,15 +1,32 @@
 # Deploying
 
-'''note
-For safety this guide does not include any tofu apply commands. Manually subsistute any tofu plan commands with tofu apply.
-'''
+## Initial deployment
 
-After creating your infrastructure repository and configuring your tofu resources you will first want to create your cluster
+Render and commit the cluster chart under `cluster.infra_repo.path`. That
+directory should contain the rendered top-level Applications and the
+`appprojects/` subdirectory. Use the same infrastructure URL and path in
+the chart values so its child Applications can locate their manifests.
 
-Because we depend on the cluster to exist before we can roll out bootstrap resources to it, we run tofu with a resource exclusion:
+Supply `dns_api_token` through your deployment environment for the default
+cert-manager DNS solver. Provision the cluster first:
+
 ```bash
-tofu plan -var-file ./envs/myenv.tfvars -exclude module.berg-cluster.module.cluster_bootstrap
-tofu plan -var-file ./envs/shc-2026-qual-prod.tfvars -exclude module.berg-cluster.module.authentik
+tofu plan -var-file ./envs/myenv.tfvars -target=module.berg-cluster.module.cluster
 ```
 
+Once the Kubernetes API is reachable, run a normal plan and apply the reviewed
+changes. If Authentik is enabled, exclude its API configuration during this
+pass (`-exclude=module.berg-cluster.module.authentik`), since the service will
+come up through GitOps. OpenTofu creates the seed Secrets before the Argo CD
+Helm release. Argo CD then syncs the committed manifests, including cert-manager
+and the gateway Certificate.
 
+Once Argo CD creates the Certificate, wait for TLS to be ready:
+
+```bash
+kubectl -n berg wait --for=condition=Ready certificate/berg-gateway-tls --timeout=10m
+```
+
+After DNS resolves and Authentik is reachable over HTTPS, plan and apply again
+with Authentik API configuration included. See the [setup guide](SETUP.md) for
+Forgejo, dedicated workers, and seed credential inputs.

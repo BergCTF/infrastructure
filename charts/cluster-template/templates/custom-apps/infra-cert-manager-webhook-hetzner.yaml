@@ -1,4 +1,4 @@
-{{- if eq .Values.dns.provider "hetzner" }}
+{{- if and .Values.certManager.enabled (eq .Values.dns.provider "hetzner") }}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application

@@ -1,6 +1,6 @@
 module "talos" {
   source  = "hcloud-k8s/kubernetes/hcloud"
-  version = "3.20.1"
+  version = "6.4.0"
 
   cluster_name = "${var.env}-${var.governance_name}"
   hcloud_token = var.hetzner_token
@@ -14,26 +14,16 @@ module "talos" {
   # Optional Ingress Controller and Cert Manager
   longhorn_enabled                              = false
   cert_manager_enabled                          = false
-  ingress_nginx_enabled                         = false
   kube_api_load_balancer_enabled                = var.kube_api_loadbalancer_enabled
   kube_api_load_balancer_public_network_enabled = true
   cluster_allow_scheduling_on_control_planes    = var.cluster_allow_scheduling_on_control_planes
-  kube_api_extra_args = {
-    # TODO: there's more consistent ways to derive this
-    oidc-issuer-url     = "https://idp.${var.cluster_domain}/application/o/kubernetes-api/"
-    oidc-client-id      = "kubernetes-api"
-    oidc-username-claim = "email"
-    oidc-groups-claim   = "groups"
-    oidc-groups-prefix  = "oidc:"
-  }
+  kube_api_oidc_providers                       = var.kube_api_oidc_providers
 
   talos_extra_remote_manifests = [
     # Add CRDs for ArgoCD
-    "https://raw.githubusercontent.com/argoproj/argo-cd/refs/heads/master/manifests/crds/application-crd.yaml",
-    "https://raw.githubusercontent.com/argoproj/argo-cd/refs/heads/master/manifests/crds/appproject-crd.yaml",
-    "https://raw.githubusercontent.com/argoproj/argo-cd/refs/heads/master/manifests/crds/applicationset-crd.yaml",
-    # Add CRDs for Gateway API
-    "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/experimental-install.yaml",
+    "https://raw.githubusercontent.com/argoproj/argo-cd/v3.6.2/manifests/crds/application-crd.yaml",
+    "https://raw.githubusercontent.com/argoproj/argo-cd/v3.6.2/manifests/crds/appproject-crd.yaml",
+    "https://raw.githubusercontent.com/argoproj/argo-cd/v3.6.2/manifests/crds/applicationset-crd.yaml",
   ]
 
   # Allow access from anywhere.
@@ -60,14 +50,23 @@ module "talos" {
     }
   ]
 
-  # we use kgateway
-  cilium_helm_values = {
-    ingressController = {
-      enabled = false
-    }
-  }
+  gateway_api_crds_version         = "v1.7.0"
+  gateway_api_crds_release_channel = "experimental"
+
+  cilium_hubble_enabled       = true
+  cilium_hubble_relay_enabled = true
+  cilium_hubble_ui_enabled    = true
+  cilium_helm_values = merge({
+    bandwidthManager = { enabled = true }
+    tls              = { secretsNamespace = { name = "infra-cilium-secrets" } }
+  }, var.cilium_helm_values)
 
   control_plane_nodepools = var.control_plane_pools
   worker_nodepools        = var.worker_pools
 
+  bare_metal_nodepools      = var.bare_metal_nodepools
+  bare_metal_config_patches = var.bare_metal_config_patches
+  hcloud_vswitch_id         = var.hcloud_vswitch_id
+  hcloud_robot_user         = var.hcloud_robot_user
+  hcloud_robot_password     = var.hcloud_robot_password
 }

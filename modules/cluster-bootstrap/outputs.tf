@@ -1,11 +1,3 @@
-output "infra_deploy_key_pub" {
-  value = tls_private_key.deploy_key.public_key_openssh
-}
-
-output "challenge_deploy_key_pub" {
-  value = tls_private_key.challenge_deploy_key.public_key_openssh
-}
-
 # outputs to be consumed by Authentik module
 output "argocd_client_secret" {
   value     = random_password.argocd_client_secret.result
