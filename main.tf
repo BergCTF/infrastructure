@@ -61,7 +61,6 @@ module "cluster_bootstrap" {
   infra_repo_deploy_key     = var.git_credentials.infra_deploy_key
   challenge_repo            = var.challenge_repo
   challenge_repo_deploy_key = var.git_credentials.challenge_deploy_key
-  argocd_webhook_secret     = var.git_credentials.argocd_webhook_secret
   git_ssh_known_hosts       = var.git_ssh_known_hosts
   argocd_helm_values        = var.argocd_helm_values
   argocd_domain             = "argocd.${var.cluster.domain}"

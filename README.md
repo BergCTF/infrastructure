@@ -1,8 +1,7 @@
 # Berg infrastructure
 
 The core module provisions Talos on Hetzner, installs Argo CD, and points it
-at a Git repository containing the rendered cluster chart. GitHub repository
-automation, identity configuration, and add-on credentials are optional.
+at a Git repository containing the rendered cluster chart. Identity configuration and add-on credentials are optional.
 
 ## Usage
 
@@ -34,14 +33,12 @@ module "platform" {
 ```
 
 - [Set up Git access, Hetzner bare-metal workers, and add-ons](docs/SETUP.md)
-- [Provision GitHub credentials separately](examples/github/README.md)
 - [Deploy or upgrade a cluster](docs/DEPLOYING.md)
 
 | Module | Purpose |
 | --- | --- |
 | [Cluster](modules/cluster/README.md) | Talos and Kubernetes on Hetzner Cloud and Robot |
 | [Cluster bootstrap](modules/cluster-bootstrap/README.md) | Argo CD and the initial Kubernetes GitOps resources |
-| [GitHub](modules/github/README.md) | Optional deploy key and webhook automation |
 | [Authentik](modules/authentik/README.md) | Identity provider configuration |
 | [Harbor](modules/harbor/README.md) | Registry configuration |
 
@@ -92,7 +89,7 @@ No resources.
 | <a name="input_challenge_repo"></a> [challenge\_repo](#input\_challenge\_repo) | Optional challenge repository URL to register with Argo CD. | `string` | `null` | no |
 | <a name="input_cluster"></a> [cluster](#input\_cluster) | cluster configuration | <pre>object({<br/>    domain                                     = string<br/>    kube_api_loadbalancer_enabled              = optional(bool, false)<br/>    cluster_allow_scheduling_on_control_planes = optional(bool, false)<br/><br/>    control_plane_pools = list(object({<br/>      name     = string<br/>      type     = string<br/>      location = string<br/>      count    = number<br/>    }))<br/><br/>    worker_pools = optional(list(object({<br/>      name     = string<br/>      type     = string<br/>      location = string<br/>      count    = number<br/>      subnet   = optional(string)<br/>    })), [])<br/><br/>    bare_metal_nodepools      = optional(any, [])<br/>    bare_metal_config_patches = optional(list(string), [])<br/>    hcloud_vswitch_id         = optional(number)<br/><br/>    kube_api_oidc_providers = optional(any, [])<br/>    cilium_helm_values      = optional(any, {})<br/><br/>    infra_repo = object({<br/>      url  = string<br/>      path = string<br/>    })<br/>  })</pre> | n/a | yes |
 | <a name="input_env"></a> [env](#input\_env) | Environment name, eg test | `string` | n/a | yes |
-| <a name="input_git_credentials"></a> [git\_credentials](#input\_git\_credentials) | Optional read-only Git SSH keys and GitHub webhook secret for Argo CD. | <pre>object({<br/>    infra_deploy_key      = optional(string)<br/>    challenge_deploy_key  = optional(string)<br/>    argocd_webhook_secret = optional(string)<br/>  })</pre> | `{}` | no |
+| <a name="input_git_credentials"></a> [git\_credentials](#input\_git\_credentials) | Optional read-only Git SSH keys for Argo CD. | <pre>object({<br/>    infra_deploy_key     = optional(string)<br/>    challenge_deploy_key = optional(string)<br/>  })</pre> | `{}` | no |
 | <a name="input_git_ssh_known_hosts"></a> [git\_ssh\_known\_hosts](#input\_git\_ssh\_known\_hosts) | Verified OpenSSH known\_hosts entries for self-hosted Git servers. | `string` | `""` | no |
 | <a name="input_governance_name"></a> [governance\_name](#input\_governance\_name) | Logical grouping of multiple environments | `string` | n/a | yes |
 | <a name="input_hcloud_robot_password"></a> [hcloud\_robot\_password](#input\_hcloud\_robot\_password) | Hetzner Robot web service password for dedicated workers. | `string` | `null` | no |

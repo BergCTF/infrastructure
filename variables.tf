@@ -53,11 +53,10 @@ variable "cluster" {
 
 variable "git_credentials" {
   type = object({
-    infra_deploy_key      = optional(string)
-    challenge_deploy_key  = optional(string)
-    argocd_webhook_secret = optional(string)
+    infra_deploy_key     = optional(string)
+    challenge_deploy_key = optional(string)
   })
-  description = "Optional read-only Git SSH keys and GitHub webhook secret for Argo CD."
+  description = "Optional read-only Git SSH keys for Argo CD."
   default     = {}
   nullable    = false
   sensitive   = true

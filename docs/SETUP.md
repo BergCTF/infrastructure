@@ -5,8 +5,7 @@ bootstrap. The snippets below extend the inputs to the [root module](../README.m
 
 ## Git access
 
-Git authentication is supplied to the cluster as credentials. For GitHub-managed
-deploy keys and a push webhook, use the [standalone GitHub example](../examples/github/README.md).
+Git authentication is supplied to the cluster as credentials.
 
 ### Forgejo over SSH
 

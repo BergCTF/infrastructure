@@ -9,7 +9,7 @@ variables {
   challenge_repo_deploy_key = "fake-challenge-key"
   git_ssh_known_hosts       = "forgejo.example.org ssh-ed25519 mock-host-key"
   argocd_domain             = "argocd.example.org"
-  argocd_webhook_secret     = "mock-webhook-secret"
+
 }
 
 run "private_gitops_seed" {
@@ -38,11 +38,11 @@ run "public_gitops_seed" {
     infra_repo_deploy_key     = null
     challenge_repo            = null
     challenge_repo_deploy_key = null
-    argocd_webhook_secret     = null
+
   }
 
   assert {
-    condition     = !contains(keys(kubernetes_secret_v1.argocd_infra_repo.data), "sshPrivateKey") && length(helm_release.infra_argocd.set_sensitive) == 0
-    error_message = "A public repository must work without SSH or a webhook credential."
+    condition     = !contains(keys(kubernetes_secret_v1.argocd_infra_repo.data), "sshPrivateKey")
+    error_message = "A public repository must work without an SSH key."
   }
 }

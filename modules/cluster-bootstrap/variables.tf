@@ -15,13 +15,6 @@ variable "infra_repo_path" {
   description = "path in argocd infra repo"
 }
 
-variable "argocd_webhook_secret" {
-  type        = string
-  description = "GitHub webhook secret for Argo CD."
-  default     = null
-  sensitive   = true
-}
-
 variable "challenge_repo" {
   type        = string
   description = "Optional challenge repository URL to register with Argo CD."

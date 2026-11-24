@@ -39,7 +39,6 @@ No modules.
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_argocd_domain"></a> [argocd\_domain](#input\_argocd\_domain) | Public hostname of the Argo CD installation. | `string` | `null` | no |
 | <a name="input_argocd_helm_values"></a> [argocd\_helm\_values](#input\_argocd\_helm\_values) | Optional Helm settings for the Argo CD installation, such as SSO and resource limits. | `any` | `{}` | no |
-| <a name="input_argocd_webhook_secret"></a> [argocd\_webhook\_secret](#input\_argocd\_webhook\_secret) | GitHub webhook secret for Argo CD. | `string` | `null` | no |
 | <a name="input_challenge_repo"></a> [challenge\_repo](#input\_challenge\_repo) | Optional challenge repository URL to register with Argo CD. | `string` | `null` | no |
 | <a name="input_challenge_repo_deploy_key"></a> [challenge\_repo\_deploy\_key](#input\_challenge\_repo\_deploy\_key) | SSH private key for a private challenge repository. | `string` | `null` | no |
 | <a name="input_git_ssh_known_hosts"></a> [git\_ssh\_known\_hosts](#input\_git\_ssh\_known\_hosts) | Verified OpenSSH known\_hosts entries for self-hosted Git servers. | `string` | `""` | no |

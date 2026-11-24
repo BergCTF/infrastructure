@@ -24,10 +24,6 @@ resource "helm_release" "infra_argocd" {
       )
     }),
   ]
-  set_sensitive = var.argocd_webhook_secret == null ? [] : [{
-    name  = "configs.secret.githubSecret"
-    value = var.argocd_webhook_secret
-  }]
   set = [
     {
       name  = "crds.install"
