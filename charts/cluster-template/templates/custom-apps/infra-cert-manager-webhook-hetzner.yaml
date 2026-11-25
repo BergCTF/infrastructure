@@ -21,7 +21,7 @@ spec:
   source:
     repoURL: https://charts.hetzner.cloud/
     chart: cert-manager-webhook-hetzner
-    targetRevision: 0.6.5
+    targetRevision: 0.9.1
     helm:
       valuesObject:
 {{- end }}
