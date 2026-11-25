@@ -25,7 +25,7 @@ resource "helm_release" "infra_argocd" {
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
   namespace  = kubernetes_namespace_v1.infra_argocd.metadata[0].name
-  version    = "10.18.3"
+  version    = "10.20.0"
 
   # install crds via talos
   skip_crds = true
